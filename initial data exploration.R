@@ -1,5 +1,7 @@
 
 require(dplyr)
+require(reshape2)
+require(stringr)
 dataSummary<-read.csv("ex_vivo_HVE_Tenofovir_Summary.csv")
 head(dataSummary)
 
@@ -90,5 +92,19 @@ d1.500.up<-summaryOnly%>%
   select(Probe.ID,TargetID,ENTREZ_GENE_ID,d1.500)%>%
   filter(d1.500=="UP")
 
+##melt and show how many are up, down and false for each sample
+melted<-melt(summaryOnly,
+             id.vars=c("Probe.ID","TargetID","ENTREZ_GENE_ID"),
+             variable.name="day.dose",value.name="UpDownFalse")
 
-  
+
+upDownCount<-melted%>%
+  group_by(day.dose)%>%
+  summarise(countUP=sum(UpDownFalse=="UP"),
+            countDOWN=sum(UpDownFalse=="DOWN"),
+            countFALSE=sum(UpDownFalse=="FALSE"))
+
+require(pander)
+pander(upDownCount)
+
+
