@@ -28,9 +28,10 @@ names(summaryOnly)[4:11]<-c("d14.50","d7.50","d4.50","d1.50",
 
 
 ##This function doesn't work but I want it to :(
-isolateDEG<-function(colname,direction){
+#look more at ?interp
+isolateDEG<-function("colname","direction"){
 summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,colname)%>%
+  select("Probe.ID","TargetID","ENTREZ_GENE_ID","colname")%>%
   filter(colname=="direction")
 }
 
@@ -92,10 +93,21 @@ d1.500.up<-summaryOnly%>%
   select(Probe.ID,TargetID,ENTREZ_GENE_ID,d1.500)%>%
   filter(d1.500=="UP")
 
-##melt and show how many are up, down and false for each sample
+
+
+
+##melt and show HOW MANY are up, down and false for each sample
 melted<-melt(summaryOnly,
              id.vars=c("Probe.ID","TargetID","ENTREZ_GENE_ID"),
              variable.name="day.dose",value.name="UpDownFalse")
+
+#change order of samples for future plots
+melted$day.dose<-factor(melted$day.dose,
+                        levels=c("d1.50","d4.50","d7.50",
+                                 "d14.50","d1.500","d4.500","d7.500",
+                                 "d14.500"))
+
+
 
 
 upDownCount<-melted%>%
@@ -107,4 +119,18 @@ upDownCount<-melted%>%
 require(pander)
 pander(upDownCount)
 
+#now melt that df to prepare it for easy plotting
+meltedupDownCount<-melt(upDownCount, id.vars="day.dose",
+                        variable.name="Direction",value.name="Count")
 
+
+#how many genes are there total?
+nGenes<-length(summaryOnly$Probe.ID)
+
+
+
+ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
+  geom_bar(aes(fill=Direction), position="dodge",stat="identity")+ylab("Number of genes")+
+  geom_hline(y=7832)+
+  ggtitle("Number of upregulated, downregulated and non-significant genes\n\ per time point and dose\n\ 
+          (line represents total genes analyzed for diff exp)")
