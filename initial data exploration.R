@@ -39,59 +39,6 @@ summaryOnly%>%
 
   
 
-###all the DOWNs
-
-d14.50.down<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d14.50)%>%
-  filter(d14.50=="DOWN")
-
-d7.50.down<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d7.50)%>%
-  filter(d7.50=="DOWN")
-
-d1.50.down<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d1.50)%>%
-  filter(d1.50=="DOWN")
-
-d14.500.down<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d14.500)%>%
-  filter(d14.500=="DOWN")
-
-d7.500.down<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d7.500)%>%
-  filter(d7.500=="DOWN")
-
-d1.500.down<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d1.500)%>%
-  filter(d1.500=="DOWN")
-
-
-
-#all the UPs
-
-d14.50.up<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d14.50)%>%
-  filter(d14.50=="UP")
-
-d7.50.up<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d7.50)%>%
-  filter(d7.50=="UP")
-
-d1.50.up<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d1.50)%>%
-  filter(d1.50=="UP")
-
-d14.500.up<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d14.500)%>%
-  filter(d14.500=="UP")
-
-d7.500.up<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d7.500)%>%
-  filter(d7.500=="UP")
-
-d1.500.up<-summaryOnly%>%
-  select(Probe.ID,TargetID,ENTREZ_GENE_ID,d1.500)%>%
-  filter(d1.500=="UP")
 
 
 
@@ -128,9 +75,20 @@ meltedupDownCount<-melt(upDownCount, id.vars="day.dose",
 nGenes<-length(summaryOnly$Probe.ID)
 
 
-
+##plot of up down and false counts
 ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
   geom_bar(aes(fill=Direction), position="dodge",stat="identity")+ylab("Number of genes")+
   geom_hline(y=7832)+
   ggtitle("Number of upregulated, downregulated and non-significant genes\n\ per time point and dose\n\ 
           (line represents total genes analyzed for diff exp)")
+
+d1.50Genes<-melted%>%
+  filter(day.dose=d1.50,UpDownFalse!=FALSE)%>%
+  select(ENTREZ_GENE_ID)
+
+#all the genes, incl FALSE
+allGenes<-dataSummary[,1:3]
+
+EntrezIDs<-allGenes[,3]
+
+
