@@ -1,0 +1,39 @@
+Calculating p values for functional categories
+
+N = number of genes on array
+
+F = a functional category, all genes in N are either F or notF
+
+K = regulated genes
+
+M = number of genes in N that are F. N-M = number of genes notF
+
+x = genes from K that are determined to be F
+
+The p value is:
+
+The probability of seeing X or >X if K genes were picked RANDOMLY from N.
+
+If this is very low, our results are more likely to be significant,i.e., that the regulated genes have an overrepresentation of genes that are in a certain functional group, when compared to a random selection of genes.
+
+This is calculated using the chi-squared or hypergeometric distribution or using Fisher's exact test.
+================================================================================
+Using RDAVIDWebService
+
+I could only get it to load if I opened Rstudio with R 32-bit version 3.1.1
+
+Before, I got an error about not available for 3.1.2, then got 
+
+Error : .onLoad failed in loadNamespace() for 'rJava', details:
+       call: fun(libname, pkgname)
+       error: No CurrentVersion entry in Software/JavaSoft registry! 
+       Try re-installing Java and make sure R and Java have matching architectures.
+     Error: package ‘rJava’ could not be loaded
+
+This website:http://cran.r-project.org/web/packages/gMCP/INSTALL 
+suggested the following solution, which appeared to work 19Feb15
+
+
+   Java is not installed or at least not in the correct variant.
+   For example if you have only Java 32-bit on a 64-bit system
+   and you start the 64-bit R you will run into this error.
