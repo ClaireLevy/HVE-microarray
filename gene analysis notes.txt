@@ -1,4 +1,4 @@
-Calculating p values for functional categories
+﻿Calculating p values for functional categories
 
 N = number of genes on array
 
@@ -37,3 +37,42 @@ suggested the following solution, which appeared to work 19Feb15
    Java is not installed or at least not in the correct variant.
    For example if you have only Java 32-bit on a 64-bit system
    and you start the 64-bit R you will run into this error.
+
+================================================================================
+DAVID
+
+
+DAVID gene functional classification
+
+Puts genes into different clusters, each of which has an enrichment score. Shows gene symbol and name/description of each gene in the group.
+
+
+Functional Annotation
+	
+	functional annotation chart
+
+ Identifies the most relevant (overrepresented) biological terms associated with a given gene list. Can sort by p-value, number of genes, etc. Category is the db where the term is associated with those genes (I guess?)
+
+QUESTION: Do the categories just come from a db somewhere?
+
+
+	Functional Annotation Clustering
+
+
+The clustering algorithm puts the terms that the genes are associated with into clusters and lists the function related to that term. the minimum number of terms per cluster can be adjusted under "options".Default is 3.
+
+	
+
+	Functional Annotation Table
+Same data organized by gene, with the terms associated with that gene under it.
+
+
+==================================================================================
+Innate DB
+
+Can input 10 samples at a time. Id is required and you can also enter expression values and p values. Looks like the output is more slick than DAVID
+
+===================================================================================
+GO
+
+The manual was too slim for me to get a good idea of how to use it. Newer features seem to be in development now? 
