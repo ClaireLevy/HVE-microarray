@@ -2,7 +2,8 @@
 require(dplyr)
 require(reshape2)
 require(stringr)
-dataSummary<-read.csv("ex_vivo_HVE_Tenofovir_Summary.csv")
+require(ggplot2)
+dataSummary<-read.csv("ex_vivo_HVE_Tenofovir_Summary_results.csv")
 head(dataSummary)
 
 #spread sheet is laid out with the 4 columns: log2 fold change,
@@ -27,21 +28,6 @@ names(summaryOnly)[4:11]<-c("d14.50","d7.50","d4.50","d1.50",
                             "d14.500","d7.500","d4.500","d1.500")
 
 
-##This function doesn't work but I want it to :(
-#look more at ?interp
-isolateDEG<-function("colname","direction"){
-summaryOnly%>%
-  select("Probe.ID","TargetID","ENTREZ_GENE_ID","colname")%>%
-  filter(colname=="direction")
-}
-
-
-
-  
-
-
-
-
 
 ##melt and show HOW MANY are up, down and false for each sample
 melted<-melt(summaryOnly,
@@ -53,9 +39,6 @@ melted$day.dose<-factor(melted$day.dose,
                         levels=c("d1.50","d4.50","d7.50",
                                  "d14.50","d1.500","d4.500","d7.500",
                                  "d14.500"))
-
-
-
 
 upDownCount<-melted%>%
   group_by(day.dose)%>%
@@ -82,13 +65,101 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
   ggtitle("Number of upregulated, downregulated and non-significant genes\n\ per time point and dose\n\ 
           (line represents total genes analyzed for diff exp)")
 
-d1.50Genes<-melted%>%
-  filter(day.dose=d1.50,UpDownFalse!=FALSE)%>%
+  
+##I am going to try to use all the probes on the array 
+#as a background reference for annotation and functional
+#analysis stuff. So I will try to extract that info from
+# the raw data file that LMF sent
+
+#can't read in data using lumiR, says there is nothing for the
+#control data slot...
+
+#this tells me that HumanHT12v4_121001 was the assay used
+require(lumi)
+x<-lumiR("FinalReport_exvivo_TNF_HVE.txt")
+readLines("FinalReport_exvivo_TNF_HVE.txt", n=10)
+#But DAVID doesn't have that as one of their defaults
+#I will try to extract them.
+
+data<-readBeadSummaryData("FinalReport_exvivo_TNF_HVE.txt")
+str(data)
+#looks like featureData slot has columns for ProbeID, TargetID,
+#and PROBE_ID. The last one is illumina (starts with ILMN_)so
+#I am guessing that ProbeID is the same as Probe.ID in the summarydata
+
+
+
+
+
+
+
+#If ProbeID = Probe.ID (from summary data), there should be some matches if I do
+# %in%...
+str(melted)#they are integers here but factor in the raw data
+#so I'll change them
+
+melted$Probe.ID<-factor(melted$Probe.ID)
+
+#now check for matches
+x<-sum(melted$Probe.ID %in% y)
+length(melted$Probe.ID)
+#ok looks like all Probe.IDs are in ProbeID
+
+
+z<-featureNames(data)#this apparently gives the feature names
+#for the chip, which I guess is what I want
+y<-featureData(data)$ProbeID
+#what is the difference here? 
+identical(z,y) # I guess they are the same thing
+
+str(z)
+head(z)
+tail(z)
+
+str(y)
+head(y)
+tail(y)
+#I don't know why but there are sample names at the end of these
+#and only 47,323 probe Id. #checked 27Feb14, this is right, there
+#should be 47323.
+
+
+#save in .csv to use in DAVID and etc
+write.csv(z[1:47323],"featureNames.csv")
+
+###nevermind DAVID couldn't figure out the IDs so I'll
+#convert entrez>symbol and use symbol from the raw data
+
+d4.50<-melted%>%
+  filter(day.dose=="d4.50",UpDownFalse!=FALSE)%>%
   select(ENTREZ_GENE_ID)
+write.csv(d4.50,"d4.50regulated.csv")
 
-#all the genes, incl FALSE
-allGenes<-dataSummary[,1:3]
+#there are a bunch of NAs in there
+allGenesSymbol<-(featureData(data)$SYMBOL)
+allGenesSymbol<-na.omit(allGenesSymbol)
+#and there are a bunch of blanks too
+allGenesSymbol<-allGenesSymbol[allGenesSymbol!=""]
+str(allGenesSymbol)
+tail(allGenesSymbol)
+#again there are weird things as the end so I'll just take 1:47323
+#and the last one looks like a sample name or something
+#so get rid of it
+allGenesSymbol<-allGenesSymbol[1:44053]
+write.csv(allGenesSymbol,"allGenesSymbol.csv")
+#DAVID won't let you use gene symbol for a background.
 
-EntrezIDs<-allGenes[,3]
+#so I'll try the illumina ids
 
+str(featureData(data))
+str(data)
+allGenesIlmn<-(featureData(data)$PROBE_ID)
+#remove blanks and NAs
+allGenesIlmn<-allGenesIlmn[allGenesIlmn!=""]
+allGenesIlmn<-na.omit(allGenesIlmn)
+#write
 
+write.csv(allGenesIlmn[1:47323],"allGenesIlmn.csv")
+
+#DAVID didn't understand all of them so I chose the recommended
+#"map the IDs that DAVID could convert" option
