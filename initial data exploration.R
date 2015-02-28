@@ -81,85 +81,84 @@ readLines("FinalReport_exvivo_TNF_HVE.txt", n=10)
 #But DAVID doesn't have that as one of their defaults
 #I will try to extract them.
 
-data<-readBeadSummaryData("FinalReport_exvivo_TNF_HVE.txt")
-str(data)
-#looks like featureData slot has columns for ProbeID, TargetID,
-#and PROBE_ID. The last one is illumina (starts with ILMN_)so
-#I am guessing that ProbeID is the same as Probe.ID in the summarydata
+# data<-readBeadSummaryData("FinalReport_exvivo_TNF_HVE.txt")
+# str(data)
+# #looks like featureData slot has columns for ProbeID, TargetID,
+# #and PROBE_ID. The last one is illumina (starts with ILMN_)so
+# #I am guessing that ProbeID is the same as Probe.ID in the summarydata
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# #If ProbeID = Probe.ID (from summary data), there should be some matches if I do
+# # %in%...
+# str(melted)#they are integers here but factor in the raw data
+# #so I'll change them
+# 
+# melted$Probe.ID<-factor(melted$Probe.ID)
+# 
+# #now check for matches
+# x<-sum(melted$Probe.ID %in% y)
+# length(melted$Probe.ID)
+# #ok looks like all Probe.IDs are in ProbeID
+# 
+# 
+# z<-featureNames(data)#this apparently gives the feature names
+# #for the chip, which I guess is what I want
+# y<-featureData(data)$ProbeID
+# #what is the difference here? 
+# identical(z,y) # I guess they are the same thing
+# 
+# str(z)
+# head(z)
+# tail(z)
+# 
+# str(y)
+# head(y)
+# tail(y)
+# #I don't know why but there are sample names at the end of these
+# #and only 47,323 probe Ids.
+# #checked 27Feb14, this is right, there should be 47323.
+# 
+# 
+# ## DAVID couldn't figure out the IDs so I'll
+# #convert entrez>symbol and use symbol from the raw data
+# #nevermind, DAVID won't let you use gene symbol for a background.
+# 
+# 
+# #so I'll try the illumina ids
+# 
+# str(featureData(data))
+# str(data)
+# allGenesIlmn<-(featureData(data)$PROBE_ID)
+# #remove blanks and NAs
+# allGenesIlmn<-allGenesIlmn[allGenesIlmn!=""]
+# allGenesIlmn<-na.omit(allGenesIlmn)
+# #write
+# 
+# write.csv(allGenesIlmn[1:47323],"allGenesIlmn.csv")
 
-
-
-
-
-
-
-#If ProbeID = Probe.ID (from summary data), there should be some matches if I do
-# %in%...
-str(melted)#they are integers here but factor in the raw data
-#so I'll change them
-
-melted$Probe.ID<-factor(melted$Probe.ID)
-
-#now check for matches
-x<-sum(melted$Probe.ID %in% y)
-length(melted$Probe.ID)
-#ok looks like all Probe.IDs are in ProbeID
-
-
-z<-featureNames(data)#this apparently gives the feature names
-#for the chip, which I guess is what I want
-y<-featureData(data)$ProbeID
-#what is the difference here? 
-identical(z,y) # I guess they are the same thing
-
-str(z)
-head(z)
-tail(z)
-
-str(y)
-head(y)
-tail(y)
-#I don't know why but there are sample names at the end of these
-#and only 47,323 probe Id. #checked 27Feb14, this is right, there
-#should be 47323.
-
-
-#save in .csv to use in DAVID and etc
-write.csv(z[1:47323],"featureNames.csv")
-
-###nevermind DAVID couldn't figure out the IDs so I'll
-#convert entrez>symbol and use symbol from the raw data
+#DAVID didn't understand all of them so I chose the recommended
+#"map the IDs that DAVID could convert" option
 
 d4.50<-melted%>%
   filter(day.dose=="d4.50",UpDownFalse!=FALSE)%>%
   select(ENTREZ_GENE_ID)
+d4.50<-na.omit(d4.50)
 write.csv(d4.50,"d4.50regulated.csv")
 
-#there are a bunch of NAs in there
-allGenesSymbol<-(featureData(data)$SYMBOL)
-allGenesSymbol<-na.omit(allGenesSymbol)
-#and there are a bunch of blanks too
-allGenesSymbol<-allGenesSymbol[allGenesSymbol!=""]
-str(allGenesSymbol)
-tail(allGenesSymbol)
-#again there are weird things as the end so I'll just take 1:47323
-#and the last one looks like a sample name or something
-#so get rid of it
-allGenesSymbol<-allGenesSymbol[1:44053]
-write.csv(allGenesSymbol,"allGenesSymbol.csv")
-#DAVID won't let you use gene symbol for a background.
+d4.50UP<-melted%>%
+  filter(day.dose=="d4.50",UpDownFalse=="UP")%>%
+  select(ENTREZ_GENE_ID)
+d4.50UP<-na.omit(d4.50UP)
 
-#so I'll try the illumina ids
+write.csv(d4.50UP,"d4.50upReg.csv")
 
-str(featureData(data))
-str(data)
-allGenesIlmn<-(featureData(data)$PROBE_ID)
-#remove blanks and NAs
-allGenesIlmn<-allGenesIlmn[allGenesIlmn!=""]
-allGenesIlmn<-na.omit(allGenesIlmn)
-#write
+#reading in data incl log2FC and adj p values for innate db exploration
+allData<-read.csv("CL copy of LMF summary results.csv")
 
-write.csv(allGenesIlmn[1:47323],"allGenesIlmn.csv")
-
-#DAVID didn't understand all of them so I chose the recommended
-#"map the IDs that DAVID could convert" option
+d1.50<-select(allData, ENTREZ_GENE_ID, d1.50adjP,d1.50FC)
+write.csv(d1.50,"d1.50.csv")
