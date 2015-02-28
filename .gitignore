@@ -1,0 +1,53 @@
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+# Folder config file
+Desktop.ini
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+# Windows shortcuts
+*.lnk
+# =========================
+# Operating System Files
+# =========================
+# OSX
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+# Thumbnails
+._*
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+.Rproj.user
+CL copy of LMF summary results.csv
+CL copy of LMF summary results.xlsx
+FinalReport_exvivo_TNF_HVE.txt
+HVE microarray.Rproj
+RDAVIDWebService.R
+allGenesIlmn.csv
+allGenesSymbol.csv
+d1.50.csv
+d1.50.txt
+d1.50.xlsx
+d4.50regulated.csv
+d4.50regulated.xlsx
+d4.50upReg.csv
+ex vivo_HVE_Tenofovir_Summary_results.xlsx
+ex_vivo_HVE_Tenofovir_Summary.csv
+ex_vivo_HVE_Tenofovir_Summary_results.csv
+termClusterReport1.tab
+.RData
+.Rhistory
