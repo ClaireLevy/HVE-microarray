@@ -1,0 +1,32 @@
+Gene set enrichment analysis questions
+   1. Which database to prefer? 
+
+   2. Which conditions to focus on? 
+
+--------------------------------------------------------------------------------
+
+Raw data questions
+   1. The samples are described as HVE_X# where X is A, B, or C and # is 1-12. 
+      What is the code?
+   
+   2. The raw data file includes the sample data, control data, and sample 
+      table. How best to read it in? What is the sample table for? 
+
+   3. If we read in just the sample data, lumi can figure it out. But then the
+      control data is not included, and it's necessary for background 
+      correction. The control data is formatted like this:
+      
+         TargetID    |  HVE_C5.AVG_Signal    | HVE_C5.BEAD_STDERR	   | ...
+
+         In other words, there's a TargetID column and then three columns for 
+         each sample (average signal, std error and number of beads). 
+
+      The lumi package wants this:
+
+         controlType |  probeID  | HVE_C5    | HVE_A1    | ...
+      
+         In other words, two leading columns and then just one column (average 
+         signal) for each sample. 
+
+      So long story short, we can't figure out how to read in the control data.
+
