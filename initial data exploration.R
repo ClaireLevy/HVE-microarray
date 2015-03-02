@@ -160,5 +160,7 @@ write.csv(d4.50UP,"d4.50upReg.csv")
 #reading in data incl log2FC and adj p values for innate db exploration
 allData<-read.csv("CL copy of LMF summary results.csv")
 
-d1.50<-select(allData, ENTREZ_GENE_ID, d1.50adjP,d1.50FC)
+#just for d1.50, regulated genes only, both up and down
+d1.50<-select(allData, ENTREZ_GENE_ID, d1.50adjP,d1.50FC,d1.50DEG)
+d1.50<-filter(d1.50,d1.50DEG!="FALSE")
 write.csv(d1.50,"d1.50.csv")
