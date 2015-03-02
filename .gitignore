@@ -51,3 +51,7 @@ ex_vivo_HVE_Tenofovir_Summary_results.csv
 termClusterReport1.tab
 .RData
 .Rhistory
+*.xls
+*.csv
+*.xlsx
+microarrayData
