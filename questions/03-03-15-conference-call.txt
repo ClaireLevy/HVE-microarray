@@ -30,3 +30,38 @@ Raw data questions
 
       So long story short, we can't figure out how to read in the control data.
 
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+DEG questions:
+
+1) What background should be used for DAVID?
+
+Our project used the illumina humanHT v4 chip but using the v3 one offered as a background from DAVID is ok.
+
+
+2) What about trying to access GO info via R?
+
+Not worth it. 
+CL says: I think it is still worth investigating in terms of setting up an efficient data pipeline.
+
+
+3) So should we load subsrets of the data (timepoint.dose, up or down reg) separately into InnateDB or DAVID?
+
+Yes, then save the results for comparison
+
+4) Is it ok to let InnateDB do the ORA? 
+
+Yes, and use the Fisher's exact test and we don't need to be so stringent at this point in the analysis. (Already used more stringent tests when determining DEGs)
+
+
+5) Should we focus on GO, or pathways or interactions...?
+
+Focus on gene ontology for now
+
+6) What about cerebral?
+
+Sure, use it.
+
+
+Book suggestion: Data Manipulation with R (FHCRC has it)
