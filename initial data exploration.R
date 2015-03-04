@@ -144,23 +144,47 @@ readLines("FinalReport_exvivo_TNF_HVE.txt", n=10)
 #DAVID didn't understand all of them so I chose the recommended
 #"map the IDs that DAVID could convert" option
 
-d4.50<-melted%>%
-  filter(day.dose=="d4.50",UpDownFalse!=FALSE)%>%
-  select(ENTREZ_GENE_ID)
-d4.50<-na.omit(d4.50)
-write.csv(d4.50,"d4.50regulated.csv")
 
-d4.50UP<-melted%>%
-  filter(day.dose=="d4.50",UpDownFalse=="UP")%>%
-  select(ENTREZ_GENE_ID)
-d4.50UP<-na.omit(d4.50UP)
+#using the function to make data in longform...
+source("DEG-to-long-form.R")
 
-write.csv(d4.50UP,"d4.50upReg.csv")
+#a function to extract and write data from specific days and concentrations
+#the table is for innateDB (keep entrez Id, log2foldchange and fdr adj p val)
+#the csv is for david where you just put in the IDs
 
-#reading in data incl log2FC and adj p values for innate db exploration
-allData<-read.csv("CL copy of LMF summary results.csv")
+extract<-function(day,concentration,direction){
+x<-longForm[longForm$Day == day &
+              
+              longForm$Concentration == concentration &
+              
+              longForm$Direction == direction,
+            c(3,6,8)]
 
-#just for d1.50, regulated genes only, both up and down
-d1.50<-select(allData, ENTREZ_GENE_ID, d1.50adjP,d1.50FC,d1.50DEG)
-d1.50<-filter(d1.50,d1.50DEG!="FALSE")
-write.csv(d1.50,"d1.50.csv")
+write.table(x,file=paste(day,concentration,direction,"txt",sep="."),
+         sep="/t",row.names=FALSE,col.names=FALSE)
+
+write.csv(x[,1],file=paste(day,concentration,direction,"csv",sep="."),
+          row.names=FALSE)
+}
+
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/50 DEGs")
+#all the UPs from concentration=50
+extract("1","50","UP")
+extract("4","50","UP")
+extract("7","50","UP")
+extract("14","50","UP")
+
+
+#get DAVID data (saved as tab delim txt)
+
+DAVID1.50.UP<-read.table("DAVID1.50.UP.txt",sep="\t")
+
+DAVID4.50.UP<-read.table("DAVID4.50.UP.txt",sep="\t")
+
+DAVID7.50.UP<-read.table("DAVID7.50.UP.txt",sep="\t")
+
+DAVID14.50.UP<-read.table("DAVID14.50.UP.txt",sep="\t")
+
+
+
+
