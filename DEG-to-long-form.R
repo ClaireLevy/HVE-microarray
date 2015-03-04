@@ -37,35 +37,37 @@ upDown <- melt(upDown, id.vars = c("Probe.ID", "TargetID", "ENTREZ_GENE_ID"),
 ################################################################################
 # rename them
 ################################################################################
-# this is monstrous, but it works. Note that the order is important: because 
-# "." gets interpreted as meaning "any character", D1.500 matches both D1.500
-# and D14.500. So, D14.500 has to come first so that it will be matched and not
-# reach the test for D1.500
+# Note that the order is important:  D1 matches both D1 and D14. So, D14 has to 
+# come first so that it will be matched and not reach the test for D1
 # can be verified by comparing levels(factor(df$Condition)) with rename(that)
-rename <- function(data) {
-   ifelse(str_detect(data, "D14.500"), "D14.500", 
-      ifelse(str_detect(data, "D4.500"), "D4.500", 
-         ifelse(str_detect(data, "D7.500"), "D7.500", 
-            ifelse(str_detect(data, "D1.500"), "D1.500", 
-               ifelse(str_detect(data, "D14.50"), "D14.50", 
-                  ifelse(str_detect(data, "D4.50"), "D4.50", 
-                     ifelse(str_detect(data, "D7.50"), "D7.50", 
-                        ifelse(str_detect(data, "D1.50"), "D1.50", 
-                           "x"
-                        )
-                     )
-                  )
-               )
+days <- function(data) {
+   ifelse(str_detect(data, "D14"), 14, 
+      ifelse(str_detect(data, "D4"), 4, 
+         ifelse(str_detect(data, "D7"), 7, 
+            ifelse(str_detect(data, "D1"), 1, 0
             )
          )
       )
    )
 }
 
-log2FC <- mutate(log2FC, Condition = rename(Condition))
-rawFC <- mutate(rawFC, Condition = rename(Condition))
-FDR <- mutate(FDR, Condition = rename(Condition))
-upDown <- mutate(upDown, Condition = rename(Condition))
+# same order comment
+concs <- function(data) {
+   ifelse(str_detect(data, "500"), 500, 50)
+}
+
+log2FC <- mutate(log2FC, Day = days(Condition), 
+   Concentration = concs(Condition)) %>%
+   select (-(Condition))
+rawFC <- mutate(rawFC, Day = days(Condition), 
+   Concentration = concs(Condition)) %>%
+   select (-(Condition))
+FDR <- mutate(FDR, Day = days(Condition), 
+   Concentration = concs(Condition)) %>%
+   select (-(Condition))
+upDown <- mutate(upDown, Day = days(Condition), 
+   Concentration = concs(Condition)) %>%
+   select (-(Condition))
 
 ################################################################################
 # merge them
@@ -73,4 +75,4 @@ upDown <- mutate(upDown, Condition = rename(Condition))
 longForm <- merge(log2FC, rawFC)
 b <- merge(FDR, upDown)
 longForm <- merge(longForm, b)
-rm(FDR, b, log2FC, raw, rawFC, upDown, rename)
+rm(FDR, b, log2FC, raw, rawFC, upDown, concs, days)
