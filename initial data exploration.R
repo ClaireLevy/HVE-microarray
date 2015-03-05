@@ -176,15 +176,31 @@ extract("14","50","UP")
 
 
 #get DAVID data (saved as tab delim txt)
+#left the defaults but chose "Fisher's exact" under options
+# and chose to include a column for Foldchange
 
-DAVID1.50.UP<-read.table("DAVID1.50.UP.txt",sep="\t")
+#here is function for getting the DAVID data out of the folder
+getDAVID<-function(day, concentration, direction){
+ y<-read.table(file=paste("DAVID",day, concentration,direction,"txt", sep="."),
+               header=TRUE,sep="\t")
+}
 
-DAVID4.50.UP<-read.table("DAVID4.50.UP.txt",sep="\t")
+DAVID.1.50.UP<-getDAVID("1","50","UP")
+DAVID.1.50.UP<-mutate(DAVID.1.50.UP,
+                      Day= rep("1", times=nrow(DAVID.1.50.UP)))
 
-DAVID7.50.UP<-read.table("DAVID7.50.UP.txt",sep="\t")
 
-DAVID14.50.UP<-read.table("DAVID14.50.UP.txt",sep="\t")
+DAVID.4.50.UP<-getDAVID("4","50","UP")
+DAVID.4.50.UP<-mutate(DAVID.4.50.UP,
+                      Day= rep("4", times=nrow(DAVID.4.50.UP)))
 
+DAVID.7.50.UP<-getDAVID("7","50","UP")
+DAVID.7.50.UP<-mutate(DAVID.7.50.UP,
+                      Day= rep("7", times=nrow(DAVID.7.50.UP)))
+
+DAVID.14.50.UP<-getDAVID("14","50","UP")
+DAVID.14.50.UP<-mutate(DAVID.14.50.UP,
+                      Day= rep("14", times=nrow(DAVID.14.50.UP)))
 
 
 
