@@ -3,6 +3,7 @@ require(dplyr)
 require(reshape2)
 require(stringr)
 require(ggplot2)
+require(pander)
 dataSummary<-read.csv("ex_vivo_HVE_Tenofovir_Summary_results.csv")
 head(dataSummary)
 
@@ -180,27 +181,67 @@ extract("14","50","UP")
 # and chose to include a column for Foldchange
 
 #here is function for getting the DAVID data out of the folder
+#I also added a column to each df saying which day it represented
 getDAVID<-function(day, concentration, direction){
  y<-read.table(file=paste("DAVID",day, concentration,direction,"txt", sep="."),
                header=TRUE,sep="\t")
 }
 
 DAVID.1.50.UP<-getDAVID("1","50","UP")
-DAVID.1.50.UP<-mutate(DAVID.1.50.UP,
-                      Day= rep("1", times=nrow(DAVID.1.50.UP)))
+DAVID.1.50.UP<-DAVID.1.50.UP%>%
+  mutate(Day= rep("1", times=nrow(DAVID.1.50.UP)))
+
+############################################################
+#DAVID.4.50.UP<-getDAVID("4","50","UP")
+#DAVID.4.50.UP<-DAVID.4.50.UP%>%
+ # mutate(Day= rep("4", times=nrow(DAVID.4.50.UP)))
+
+#There is a problem here, I get a warning that says that not all rows have all 13 columns
+# count.fields("DAVID.4.50.UP.txt",sep="\t") shows which rows don't have all columns
+#I can't tell from the online DAVID output which rows those might
+#be or why they are like that so I will omit for now.
 
 
-DAVID.4.50.UP<-getDAVID("4","50","UP")
-DAVID.4.50.UP<-mutate(DAVID.4.50.UP,
-                      Day= rep("4", times=nrow(DAVID.4.50.UP)))
+#colsPerRow<-count.fields("DAVID.4.50.UP.txt",sep="\t")
+#whichNA<-which(is.na(m))#don't want these
+
+##########################################################
+
+
+
+
+
+
 
 DAVID.7.50.UP<-getDAVID("7","50","UP")
-DAVID.7.50.UP<-mutate(DAVID.7.50.UP,
-                      Day= rep("7", times=nrow(DAVID.7.50.UP)))
+DAVID.7.50.UP<-DAVID.7.50.UP%>%
+  mutate( Day= rep("7", times=nrow(DAVID.7.50.UP)))
 
 DAVID.14.50.UP<-getDAVID("14","50","UP")
-DAVID.14.50.UP<-mutate(DAVID.14.50.UP,
-                      Day= rep("14", times=nrow(DAVID.14.50.UP)))
+DAVID.14.50.UP<-DAVID.14.50.UP%>%
+  mutate(Day = rep("14", times=nrow(DAVID.14.50.UP)))
+
+#combine all the data frames EXCEPT day 4 because of weirdness
+allDAVID.50.UP<-rbind(DAVID.1.50.UP,DAVID.7.50.UP,DAVID.14.50.UP)
+
+#make a vector of the terms in Day1 UP
+DAVID.1.50.UPterms<-DAVID.1.50.UP%>%
+  select(Term)
 
 
 
+
+#subset for just the terms that are in Day 1
+#notice that I need to specify $Term in DAVID.1.50.UPterms
+#even those there is just the one column
+
+toKeep<-allDAVID.50.UP$Term %in% DAVID.1.50.UPterms$Term
+overlapTerms<-allDAVID.50.UP[toKeep,]
+#arrange the df more nicely
+overlapTerms<-arrange(overlapTerms,Day,PValue,Count)
+#let's just look at the terms,the pvals,count and fold enrich
+
+overlapTermsShort<-overlapTerms%>%
+  select(Day,Term,PValue,Count, Fold.Enrichment)%>%
+  group_by(Term)%>%
+  summarize(n())
