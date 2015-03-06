@@ -223,7 +223,7 @@ DAVID.14.50.UP<-DAVID.14.50.UP%>%
 
 #combine all the data frames EXCEPT day 4 because of weirdness
 allDAVID.50.UP<-rbind(DAVID.1.50.UP,DAVID.7.50.UP,DAVID.14.50.UP)
-
+allDAVID.50.UP$Day<-factor(allDAVID.50.UP$Day, levels=c("1","7","14"))
 #make a vector of the terms in Day1 UP
 DAVID.1.50.UPterms<-DAVID.1.50.UP%>%
   select(Term)
@@ -237,11 +237,47 @@ DAVID.1.50.UPterms<-DAVID.1.50.UP%>%
 
 toKeep<-allDAVID.50.UP$Term %in% DAVID.1.50.UPterms$Term
 overlapTerms<-allDAVID.50.UP[toKeep,]
-#arrange the df more nicely
-overlapTerms<-arrange(overlapTerms,Day,PValue,Count)
-#let's just look at the terms,the pvals,count and fold enrich
 
+#let's just look at the terms,the pvals,count and fold enrich
+#just the ones that are there on all days.
+
+
+####DF showing overlapping terms for dose 50 days 1,7,14###
 overlapTermsShort<-overlapTerms%>%
   select(Day,Term,PValue,Count, Fold.Enrichment)%>%
   group_by(Term)%>%
-  summarize(n())
+  filter(n()==3)%>%
+  arrange(Day,Term,PValue)
+#if you do summarize(n())where filter is  it shows you the term and 
+#how many occurances there were in overlapTerms. We only want the terms where
+#there there 3 occurances (1 per day we looked at)
+
+
+###plot plot plot
+
+#Pvalues
+ggplot(data=overlapTermsShort, aes())+
+  geom_point(aes(x = Term , y =PValue,color=Day),
+             position=position_jitter(w=0.15),size=4)+
+  scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
+                            "Nuclear body","Nuclear speck"))+
+  ggtitle("GSEA P-values for overlapping GO terms \n\ in Up-regulated genes,dose=50")
+  
+
+#Fold enrichment
+ggplot(data=overlapTermsShort, aes())+
+  geom_point(aes(x = Term , y =Fold.Enrichment,color=Day),
+             position=position_jitter(w=0.15),size=4)+
+  scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
+                            "Nuclear body","Nuclear speck"))+
+  ggtitle("Fold Enrichment for overlapping GO terms \n\ in Up-regulated genes,dose=50")
+
+#Count of genes relating to the term
+
+ggplot(data=overlapTermsShort, aes())+
+  geom_point(aes(x = Term , y =Count,color=Day),
+             position=position_jitter(w=0.15),size=4)+
+  scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
+                            "Nuclear body","Nuclear speck"))+
+  ggtitle("Number of up-regulated genes associated with overlapping terms \n\
+dose=50")
