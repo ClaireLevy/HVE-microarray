@@ -79,9 +79,9 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
 #control data slot...
 
 #this tells me that HumanHT12v4_121001 was the assay used
-require(lumi)
-x<-lumiR("FinalReport_exvivo_TNF_HVE.txt")
-readLines("FinalReport_exvivo_TNF_HVE.txt", n=10)
+#require(lumi)
+#x<-lumiR("FinalReport_exvivo_TNF_HVE.txt")
+#readLines("FinalReport_exvivo_TNF_HVE.txt", n=10)
 #But DAVID doesn't have that as one of their defaults
 #I will try to extract them.
 
@@ -190,25 +190,19 @@ getDAVID<-function(day, concentration, direction){
                header=TRUE,sep="\t")
 }
 
-
-
+#extract the david data from the folder where I saved it
 DAVID.1.50.UP<-getDAVID("1","50","UP")
 DAVID.1.50.UP<-DAVID.1.50.UP%>%
   mutate(Day= rep("1", times=nrow(DAVID.1.50.UP)))
 
 ############################################################
-#DAVID.4.50.UP<-getDAVID("4","50","UP")
-#DAVID.4.50.UP<-DAVID.4.50.UP%>%
- # mutate(Day= rep("4", times=nrow(DAVID.4.50.UP)))
+#Reading in the day 4 data separately(as csv not tab delim)
+#because there was something wrong with the formatting when I
+#read it in as .txt and there were lots of NAs and ~200 rows missing.
+DAVID.4.50.UP<-read.csv("DAVID.4.50.UP.csv")
 
-#There is a problem here, I get a warning that says that not all rows have all 13 columns
-# count.fields("DAVID.4.50.UP.txt",sep="\t") shows which rows don't have all columns
-#I can't tell from the online DAVID output which rows those might
-#be or why they are like that so I will omit for now.
-
-
-#colsPerRow<-count.fields("DAVID.4.50.UP.txt",sep="\t")
-#whichNA<-which(is.na(m))#don't want these
+DAVID.4.50.UP<-DAVID.4.50.UP%>%
+mutate(Day= rep("4", times=nrow(DAVID.4.50.UP)))
 
 ##########################################################
 
@@ -220,38 +214,30 @@ DAVID.14.50.UP<-getDAVID("14","50","UP")
 DAVID.14.50.UP<-DAVID.14.50.UP%>%
   mutate(Day = rep("14", times=nrow(DAVID.14.50.UP)))
 
-#combine all the data frames EXCEPT day 4 because of weirdness
-allDAVID.50.UP<-rbind(DAVID.1.50.UP,DAVID.7.50.UP,DAVID.14.50.UP)
-allDAVID.50.UP$Day<-factor(allDAVID.50.UP$Day, levels=c("1","7","14"))
-#make a vector of the terms in Day1 UP
-DAVID.1.50.UPterms<-DAVID.1.50.UP%>%
-  select(Term)
+#combine all the data frames
+allDAVID.50.UP<-rbind(DAVID.1.50.UP,DAVID.4.50.UP,DAVID.7.50.UP,DAVID.14.50.UP)
 
-#subset for just the terms that are in Day 1
-#notice that I need to specify $Term in DAVID.1.50.UPterms
-#even those there is just the one column
+#make Day a factor
+allDAVID.50.UP$Day<-factor(allDAVID.50.UP$Day, levels=c("1","4","7","14"))
+                           
 
-toKeep<-allDAVID.50.UP$Term %in% DAVID.1.50.UPterms$Term
-overlapTerms.50.UP<-allDAVID.50.UP[toKeep,]
-
-#let's just look at the terms,the pvals,count and fold enrich
-#just the ones that are there on all days.
-
-
-####DF showing overlapping terms for dose 50 days 1,7,14###
-##note that the associated gene IDS are not in this df but they are
-#in allDAVID.50.UP
-overlapTerms.50.UPShort<-overlapTerms.50.UP%>%
-  select(Day,Category,Term,PValue,Count, Fold.Enrichment)%>%
+##DF showing overlapping terms for dose = 50 days 1,4,7,14
+overlap.50.UP<-allDAVID.50.UP%>%
   group_by(Term)%>%
-  filter(n()==3)%>%
-  arrange(Day,Term,PValue)
+  filter(n()==4)%>% # because there are 4 days
+  arrange(Day,Term,PValue)%>%
+  ungroup()
 
 
-pander(overlapTerms.50.UPShort)
 #if you do summarize(n())where filter is  it shows you the term and 
 #how many occurances there were in overlapTerms.50.UP. We only want the terms where
-#there there 3 occurances (1 per day we looked at)
+#there there 4 occurances (1 per day we looked at)
+#a short version for easy viewing
+overlap.50.UPshort<-overlap.50.UP %>%
+  select(Day,Term,PValue)
+
+pander(overlap.50.UPshort)
+
 
 
 ###plot plot plot
@@ -259,16 +245,17 @@ pander(overlapTerms.50.UPShort)
 # of the term for readability
 
 #Pvalues
-ggplot(data=overlapTerms.50.UPShort, aes())+
+ggplot(data=overlap.50.UP, aes())+
   geom_point(aes(x = Term , y =PValue,color=Day),
              position=position_jitter(w=0.15),size=4)+
+  geom_hline(y=0.05)+
   scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
                             "Nuclear body","Nuclear speck"))+
   ggtitle("GSEA P-values for overlapping GO terms \n\ in Up-regulated genes,dose=50")
   
 
 #Fold enrichment
-ggplot(data=overlapTerms.50.UPShort, aes())+
+ggplot(data=overlap.50.UP, aes())+
   geom_point(aes(x = Term , y =Fold.Enrichment,color=Day),
              position=position_jitter(w=0.15),size=4)+
   scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
@@ -277,12 +264,31 @@ ggplot(data=overlapTerms.50.UPShort, aes())+
 
 #Count of genes relating to the term
 
-ggplot(data=overlapTerms.50.UPShort, aes())+
+ggplot(data=overlap.50.UP, aes())+
   geom_point(aes(x = Term , y =Count,color=Day),
              position=position_jitter(w=0.15),size=4)+
   scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
                             "Nuclear body","Nuclear speck"))+
   ggtitle("Number of up-regulated genes associated with overlapping terms \n\
 dose=50")
+
+#################Overlapping terms not incl day 1###########\
+
+allDAVID.50.UPnot1<-allDAVID.50.UP%>%
+  filter(Day !=1)
+
+
+overlap.not1.50.UP<-allDAVID.50.UPnot1%>%
+  group_by(Term)%>%
+  filter(n()==3)%>% # because there are 3 days
+  arrange(Day,Term,PValue)%>%
+  ungroup()
+
+overlap.not1.50.UPshort<-overlap.not1.50.UP%>%
+  select(Day, Term, PValue)
+
+head(overlap.not1.50.UPshort)
+
+unique(overlap.not1.50.UP$Term)
 
 ###################END of 50 UP DATA #######################
