@@ -1,14 +1,21 @@
+---
+title: "Preliminary exploration"
+author: "Claire Levy"
+date: "Monday, March 09, 2015"
+output: beamer_presentation
+---
 
+
+
+```{r, echo=FALSE, message=FALSE}
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
 require(dplyr)
 require(reshape2)
 require(stringr)
 require(ggplot2)
 require(pander)
-
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
-
 dataSummary<-read.csv("ex_vivo_HVE_Tenofovir_Summary_results.csv")
-
+head(dataSummary)
 
 #spread sheet is laid out with the 4 columns: log2 fold change,
 #raw fold change, FDR, Differentially expressed gene (DEG)
@@ -27,7 +34,7 @@ dataSummary<-read.csv("ex_vivo_HVE_Tenofovir_Summary_results.csv")
 
 
 summaryOnly<-dataSummary[,c(1:3,36:43)]
-
+head(summaryOnly)
 names(summaryOnly)[4:11]<-c("d14.50","d7.50","d4.50","d1.50",
                             "d14.500","d7.500","d4.500","d1.500")
 
@@ -49,10 +56,25 @@ upDownCount<-melted%>%
   summarise(countUP=sum(UpDownFalse=="UP"),
             countDOWN=sum(UpDownFalse=="DOWN"),
             countFALSE=sum(UpDownFalse=="FALSE"))
+```
 
+
+##I've done a few things with the data so far, focusing mostly on upregulated genes for dose = 50:
+
+### Read in DEG data from excel, rearrange a little and calculate  number of up, down, and non-regulated genes per day for dose = 50.
+
+### Extract data for each day for dose = 50 for upregulated genes.
+
+### Run those data through DAVID and find GO terms upregulated genes that were common to all days at dose = 50.
+
+
+```{r, echo=FALSE, message=FALSE}
 require(pander)
 pander(upDownCount)
+```
 
+
+```{r, echo=FALSE}
 #now melt that df to prepare it for easy plotting
 meltedupDownCount<-melt(upDownCount, id.vars="day.dose",
                         variable.name="Direction",value.name="Count")
@@ -61,101 +83,31 @@ meltedupDownCount<-melt(upDownCount, id.vars="day.dose",
 #how many genes are there total?
 nGenes<-length(summaryOnly$Probe.ID)
 
+```
 
+
+
+```{r, echo=FALSE}
 ##plot of up down and false counts
 ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
   geom_bar(aes(fill=Direction), position="dodge",stat="identity")+ylab("Number of genes")+
   geom_hline(y=7832)+
   ggtitle("Number of upregulated, downregulated and non-significant genes\n\ per time point and dose\n\ 
           (line represents total genes analyzed for diff exp)")
+```
+##Sean and I wrote some functions to arrange the data, extract days and doses of interest in formats that DAVID and InnateDB can use, and then read in the saved data from DAVID.
 
-  
-##I am going to try to use all the probes on the array 
-#as a background reference for annotation and functional
-#analysis stuff. So I will try to extract that info from
-# the raw data file that LMF sent
-
-#can't read in data using lumiR, says there is nothing for the
-#control data slot...
-
-#this tells me that HumanHT12v4_121001 was the assay used
-require(lumi)
-x<-lumiR("FinalReport_exvivo_TNF_HVE.txt")
-readLines("FinalReport_exvivo_TNF_HVE.txt", n=10)
-#But DAVID doesn't have that as one of their defaults
-#I will try to extract them.
-
-# data<-readBeadSummaryData("FinalReport_exvivo_TNF_HVE.txt")
-# str(data)
-# #looks like featureData slot has columns for ProbeID, TargetID,
-# #and PROBE_ID. The last one is illumina (starts with ILMN_)so
-# #I am guessing that ProbeID is the same as Probe.ID in the summarydata
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# #If ProbeID = Probe.ID (from summary data), there should be some matches if I do
-# # %in%...
-# str(melted)#they are integers here but factor in the raw data
-# #so I'll change them
-# 
-# melted$Probe.ID<-factor(melted$Probe.ID)
-# 
-# #now check for matches
-# x<-sum(melted$Probe.ID %in% y)
-# length(melted$Probe.ID)
-# #ok looks like all Probe.IDs are in ProbeID
-# 
-# 
-# z<-featureNames(data)#this apparently gives the feature names
-# #for the chip, which I guess is what I want
-# y<-featureData(data)$ProbeID
-# #what is the difference here? 
-# identical(z,y) # I guess they are the same thing
-# 
-# str(z)
-# head(z)
-# tail(z)
-# 
-# str(y)
-# head(y)
-# tail(y)
-# #I don't know why but there are sample names at the end of these
-# #and only 47,323 probe Ids.
-# #checked 27Feb14, this is right, there should be 47323.
-# 
-# 
-# ## DAVID couldn't figure out the IDs so I'll
-# #convert entrez>symbol and use symbol from the raw data
-# #nevermind, DAVID won't let you use gene symbol for a background.
-# 
-# 
-# #so I'll try the illumina ids
-# 
-# str(featureData(data))
-# str(data)
-# allGenesIlmn<-(featureData(data)$PROBE_ID)
-# #remove blanks and NAs
-# allGenesIlmn<-allGenesIlmn[allGenesIlmn!=""]
-# allGenesIlmn<-na.omit(allGenesIlmn)
-# #write
-# 
-# write.csv(allGenesIlmn[1:47323],"allGenesIlmn.csv")
-
-#DAVID didn't understand all of them so I chose the recommended
-#"map the IDs that DAVID could convert" option
+```{r, echo=FALSE}
 
 
 #using the function to make data in longform...
-source("DEG-to-long-form.R")
+toLongForm<-source("DEG-to-long-form.R")
 
 #a function to extract and write data from specific days and concentrations
 #the table is for innateDB.
 #the csv is for david where you just put in the IDs
 #For innateDB upload: first col is entrez, second is log2foldchange, 3rd is adj pval)
+
 extract<-function(day,concentration,direction){
 x<-longForm[longForm$Day == day &
               
@@ -170,6 +122,8 @@ write.table(x,file=paste(day,concentration,direction,"txt",sep="."),
 write.csv(x[,1],file=paste(day,concentration,direction,"csv",sep="."),
           row.names=FALSE)
 }
+
+
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
 #all the UPs from concentration=50
@@ -196,21 +150,6 @@ DAVID.1.50.UP<-getDAVID("1","50","UP")
 DAVID.1.50.UP<-DAVID.1.50.UP%>%
   mutate(Day= rep("1", times=nrow(DAVID.1.50.UP)))
 
-############################################################
-#DAVID.4.50.UP<-getDAVID("4","50","UP")
-#DAVID.4.50.UP<-DAVID.4.50.UP%>%
- # mutate(Day= rep("4", times=nrow(DAVID.4.50.UP)))
-
-#There is a problem here, I get a warning that says that not all rows have all 13 columns
-# count.fields("DAVID.4.50.UP.txt",sep="\t") shows which rows don't have all columns
-#I can't tell from the online DAVID output which rows those might
-#be or why they are like that so I will omit for now.
-
-
-#colsPerRow<-count.fields("DAVID.4.50.UP.txt",sep="\t")
-#whichNA<-which(is.na(m))#don't want these
-
-##########################################################
 
 DAVID.7.50.UP<-getDAVID("7","50","UP")
 DAVID.7.50.UP<-DAVID.7.50.UP%>%
@@ -246,14 +185,21 @@ overlapTerms.50.UPShort<-overlapTerms.50.UP%>%
   group_by(Term)%>%
   filter(n()==3)%>%
   arrange(Day,Term,PValue)
+```
 
+##DAVID terms that overlap in days 1,7,14 for upregulated genes, dose = 50.
 
+```{r, echo=F}
 pander(overlapTerms.50.UPShort)
 #if you do summarize(n())where filter is  it shows you the term and 
 #how many occurances there were in overlapTerms.50.UP. We only want the terms where
 #there there 3 occurances (1 per day we looked at)
 
+```
 
+##Plots of pvalues, fold enrichment and gene count for the same data set as above.
+
+```{r, echo=FALSE}
 ###plot plot plot
 #note that I changed the x axis labels to a shortened version
 # of the term for readability
@@ -266,7 +212,9 @@ ggplot(data=overlapTerms.50.UPShort, aes())+
                             "Nuclear body","Nuclear speck"))+
   ggtitle("GSEA P-values for overlapping GO terms \n\ in Up-regulated genes,dose=50")
   
+```
 
+```{r, echo=FALSE}
 #Fold enrichment
 ggplot(data=overlapTerms.50.UPShort, aes())+
   geom_point(aes(x = Term , y =Fold.Enrichment,color=Day),
@@ -274,7 +222,9 @@ ggplot(data=overlapTerms.50.UPShort, aes())+
   scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
                             "Nuclear body","Nuclear speck"))+
   ggtitle("Fold Enrichment for overlapping GO terms \n\ in Up-regulated genes,dose=50")
+```
 
+```{r,echo=FALSE}
 #Count of genes relating to the term
 
 ggplot(data=overlapTerms.50.UPShort, aes())+
@@ -284,5 +234,4 @@ ggplot(data=overlapTerms.50.UPShort, aes())+
                             "Nuclear body","Nuclear speck"))+
   ggtitle("Number of up-regulated genes associated with overlapping terms \n\
 dose=50")
-
-###################END of 50 UP DATA #######################
+```
