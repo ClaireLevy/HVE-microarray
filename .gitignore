@@ -44,6 +44,7 @@ d1.50.txt
 d1.50.xlsx
 d4.50regulated.csv
 d4.50regulated.xlsx
+1.50.UP.txt
 d4.50upReg.csv
 ex vivo_HVE_Tenofovir_Summary_results.xlsx
 ex_vivo_HVE_Tenofovir_Summary.csv
@@ -54,4 +55,5 @@ termClusterReport1.tab
 *.xls
 *.csv
 *.xlsx
+*.txt
 microarrayData
