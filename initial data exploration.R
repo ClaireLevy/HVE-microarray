@@ -186,8 +186,8 @@ extract("14","50","UP")
 #here is function for getting the DAVID data out of the folder
 #I also added a column to each df saying which day it represented
 getDAVID<-function(day, concentration, direction){
- y<-read.table(file=paste("DAVID",day, concentration,direction,"txt", sep="."),
-               header=TRUE,sep="\t")
+ y<-read.csv(file=paste("DAVID",day, concentration,direction,"csv", sep="."),
+               header=TRUE)
 }
 
 #extract the david data from the folder where I saved it
@@ -195,20 +195,16 @@ DAVID.1.50.UP<-getDAVID("1","50","UP")
 DAVID.1.50.UP<-DAVID.1.50.UP%>%
   mutate(Day= rep("1", times=nrow(DAVID.1.50.UP)))
 
-############################################################
-#Reading in the day 4 data separately(as csv not tab delim)
-#because there was something wrong with the formatting when I
-#read it in as .txt and there were lots of NAs and ~200 rows missing.
-DAVID.4.50.UP<-read.csv("DAVID.4.50.UP.csv")
 
+DAVID.4.50.UP<-getDAVID("4","50","UP")
 DAVID.4.50.UP<-DAVID.4.50.UP%>%
-mutate(Day= rep("4", times=nrow(DAVID.4.50.UP)))
+  mutate(Day= rep("4", times=nrow(DAVID.4.50.UP)))
 
-##########################################################
 
 DAVID.7.50.UP<-getDAVID("7","50","UP")
 DAVID.7.50.UP<-DAVID.7.50.UP%>%
-  mutate( Day= rep("7", times=nrow(DAVID.7.50.UP)))
+  mutate(Day= rep("7", times=nrow(DAVID.7.50.UP)))
+
 
 DAVID.14.50.UP<-getDAVID("14","50","UP")
 DAVID.14.50.UP<-DAVID.14.50.UP%>%
@@ -284,11 +280,27 @@ overlap.not1.50.UP<-allDAVID.50.UPnot1%>%
   arrange(Day,Term,PValue)%>%
   ungroup()
 
-overlap.not1.50.UPshort<-overlap.not1.50.UP%>%
-  select(Day, Term, PValue)
 
-head(overlap.not1.50.UPshort)
+#pvalues for those overlapping terms, more low ones for d7
+ggplot(data=overlap.not1.50.UP, aes())+
+  geom_point(aes(x = Day , y = PValue),size=4,alpha=0.1)+
+  geom_hline(y=0.05)+
+  ggtitle("Uncorrected Pvalues of overlapping upreg terms in day 4,7,& 14
+          \n\ dose = 50")
 
-unique(overlap.not1.50.UP$Term)
+###############Dose = 50, DOWN ##########################
+#extracting data from the long form summary
+extract("1","50","DOWN")
+extract("4","50","DOWN")
+extract("7","50","DOWN")
+extract("14","50","DOWN")
 
-###################END of 50 UP DATA #######################
+#Now read in the DAVID data
+DAVID.1.50.DOWN<-getDAVID("1","50","DOWN")
+
+DAVID.1.50.DOWN<-DAVID.1.50.DOWN%>%
+  mutate(Day= rep("1", times=nrow(DAVID.1.50.DOWN)))
+
+
+
+
