@@ -4,6 +4,8 @@ library(ggplot2)
 source("DEG-to-long-form.R") # get "longForm" data frame
 source("collapse-probes.R") # get function
 
+path <- "C:\\Users\\smhughes\\Desktop\\"
+
 ############################################################################
 # day 1 50 uM heat map, only genes that were affected
 ############################################################################
@@ -34,6 +36,9 @@ p + geom_tile(aes(fill = Direction)) + facet_wrap( ~ Concentration) +
    ggtitle(paste("Genes differentially regulated on day 1 50 μM")) +
    xlab("Day") + ylab("Gene")
 
+ggsave(filename = paste0(path, "day1.pdf"),
+   height = 11, width = 8.5, units = "in")
+
 ############################################################################
 # all genes affected on any day
 ############################################################################
@@ -62,6 +67,15 @@ heatmapBy <- function(toPlot, d, conc) {
       xlab("Day") + ylab("Gene")
          
 }
+
+for (conc in c(50, 500)) {
+   for (day in c(1, 4, 7, 14)) {
+      heatmapBy(d, day, conc)
+      ggsave(filename = paste0(path, day, ".", conc, ".pdf"),
+         height = 11, width = 8.5, units = "in")
+   }
+}
+
 
 heatmapBy(d, 1, 50)
 heatmapBy(d, 4, 50)
