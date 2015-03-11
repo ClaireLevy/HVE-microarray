@@ -371,11 +371,13 @@ write.csv(overlap.DAVID.not1.50.DOWN %>%
 #warning
 
 getInnate<-function(day, concentration, direction){
-read.csv(file=paste("Innate",day, concentration,direction,"csv", sep="."),
+read.csv(file = paste("Innate",day, concentration,direction,"csv", sep="."),
            header=TRUE)
 }
-Innate.1.50.UP<-getInnate("1","50","UP")
 
+#there is a better way to do this with an apply function
+#but I haven't figured it out yet.
+Innate.1.50.UP<-getInnate("1","50","UP")
 
 Innate.4.50.UP<-getInnate("4","50","UP")
 
@@ -400,3 +402,40 @@ lapply(dfList,FUN=not1)
 
 #looks like there aren't any rows where the pvalue !=1 except
 #in the day 7 df where there is a row with NAs
+
+##now the down innate data for dose = 50
+
+Innate.1.50.DOWN<-getInnate("1","50","DOWN")
+Innate.4.50.DOWN<-getInnate("4","50","DOWN")
+Innate.7.50.DOWN<-getInnate("7","50","DOWN")
+Innate.14.50.DOWN<-getInnate("14","50","DOWN")
+
+dfList2<-list(Innate.1.50.DOWN,Innate.4.50.DOWN,
+             Innate.7.50.DOWN,Innate.14.50.DOWN)
+
+lapply(dfList2, FUN=not1)
+sum(is.na(Innate.7.50.DOWN))
+
+sum(is.na(Innate.7.50.UP))
+identical(Innate.7.50.DOWN,Innate.7.50.UP)
+#looks like 5 rows with NA in both UP and DOWN for 7.50
+#but they aren't the same so I didn't read in the wrong thing
+
+
+############ biomaRt#############################
+#Goal: get GO ids and name from bioMaRt from list of entrez ids
+UP.50.1<-read.table("1.50.UP.txt", sep="\t", header = FALSE)
+head(UP.50.1)
+#make a vector of the ids to annotate
+entrez<-as.vector(UP.50.1$V1)
+
+#set the mart you want to use (see listMarts())
+#and choose the dataset to use see listDatasets()
+
+ensembl<-useMart("ensembl",dataset="hsapiens_gene_ensembl")
+
+#the attribute for go term name is "name_1066"
+goids<-getBM(attributes=c("entrezgene","go_id","name_1006"),
+            filters = "entrezgene",values=entrez,
+            mart = ensembl)
+
