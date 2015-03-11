@@ -69,7 +69,10 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
   ggtitle("Number of upregulated, downregulated and non-significant genes\n\ per time point and dose\n\ 
           (line represents total genes analyzed for diff exp)")
 
-  
+ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
+  geom_point(aes(color=Direction),size=4)+
+  geom_line(aes(group=Direction))
+
 ##I am going to try to use all the probes on the array 
 #as a background reference for annotation and functional
 #analysis stuff. So I will try to extract that info from
@@ -218,7 +221,7 @@ allDAVID.50.UP$Day<-factor(allDAVID.50.UP$Day, levels=c("1","4","7","14"))
                            
 
 ##DF showing overlapping terms for dose = 50 days 1,4,7,14
-overlap.50.UP<-allDAVID.50.UP%>%
+overlap.DAVID.50.UP<-allDAVID.50.UP%>%
   group_by(Term)%>%
   filter(n()==4)%>% # because there are 4 days
   arrange(Day,Term,PValue)%>%
@@ -229,11 +232,13 @@ overlap.50.UP<-allDAVID.50.UP%>%
 #how many occurances there were in overlapTerms.50.UP. We only want the terms where
 #there there 4 occurances (1 per day we looked at)
 #a short version for easy viewing
-overlap.50.UPshort<-overlap.50.UP %>%
-  select(Day,Term,PValue)
 
-pander(overlap.50.UPshort)
+pander(overlap.DAVID.50.UP %>%
+  select(Day,Term,PValue,Benjamini),file = "overlap.50.UP")
 
+write.csv(overlap.DAVID.50.UP %>%
+            select(Day,Category,Term,PValue,Benjamini),
+          file = "overlap.DAVID.50.UP.csv")
 
 
 ###plot plot plot
@@ -270,16 +275,23 @@ dose=50")
 
 #################Overlapping terms not incl day 1###########\
 
-allDAVID.50.UPnot1<-allDAVID.50.UP%>%
+allDAVID.not1.50.UP<-allDAVID.50.UP%>%
   filter(Day !=1)
 
 
-overlap.not1.50.UP<-allDAVID.50.UPnot1%>%
+overlap.DAVID.not1.50.UP<-allDAVID.not1.50.UP%>%
   group_by(Term)%>%
   filter(n()==3)%>% # because there are 3 days
   arrange(Day,Term,PValue)%>%
   ungroup()
 
+
+pander(overlap.DAVID.not1.50.UP %>%
+         select(Day,Term,PValue,Benjamini))
+
+write.csv(overlap.DAVID.not1.50.UP %>%
+            select(Day,Category,Term,PValue,Benjamini),
+          file = "overlap.DAVID.not1.50.UP.csv")
 
 #pvalues for those overlapping terms, more low ones for d7
 ggplot(data=overlap.not1.50.UP, aes())+
@@ -297,10 +309,94 @@ extract("14","50","DOWN")
 
 #Now read in the DAVID data
 DAVID.1.50.DOWN<-getDAVID("1","50","DOWN")
-
 DAVID.1.50.DOWN<-DAVID.1.50.DOWN%>%
   mutate(Day= rep("1", times=nrow(DAVID.1.50.DOWN)))
 
+DAVID.4.50.DOWN<-getDAVID("4","50","DOWN")
+DAVID.4.50.DOWN<-DAVID.4.50.DOWN%>%
+  mutate(Day= rep("4", times=nrow(DAVID.4.50.DOWN)))
+
+DAVID.7.50.DOWN<-getDAVID("7","50","DOWN")
+DAVID.7.50.DOWN<-DAVID.7.50.DOWN%>%
+  mutate(Day= rep("7", times=nrow(DAVID.7.50.DOWN)))
+
+DAVID.14.50.DOWN<-getDAVID("14","50","DOWN")
+DAVID.14.50.DOWN<-DAVID.14.50.DOWN%>%
+  mutate(Day= rep("14", times=nrow(DAVID.14.50.DOWN)))
+
+allDAVID.50.DOWN<-rbind(DAVID.1.50.DOWN,DAVID.14.50.DOWN,
+                        DAVID.4.50.DOWN,DAVID.7.50.DOWN)
+
+allDAVID.50.DOWN$Day<-factor(allDAVID.50.DOWN$Day,
+                             levels=c("1","4","7","14"))
+
+overlap.DAVID.50.DOWN<-allDAVID.50.DOWN%>%
+  group_by(Term)%>%
+  filter(n()==4)%>% # because there are 4 days
+  arrange(Day,Term,PValue)%>%
+  ungroup()
+
+pander(select(overlap.DAVID.50.DOWN,Day,Term,PValue,Benjamini))
+
+write.csv(overlap.DAVID.50.DOWN %>%
+            select(Day,Category,Term,PValue,Benjamini),
+          file = "overlap.DAVID.50.DOWN.csv")
+############### overlap 50 DOWN not incl day 1##############
+
+allDAVID.not1.50.DOWN<-allDAVID.50.DOWN%>%
+  filter(Day !=1)
 
 
+overlap.DAVID.not1.50.DOWN<-allDAVID.not1.50.DOWN%>%
+  group_by(Term)%>%
+  filter(n()==3)%>% # because there are 3 days
+  arrange(Day,Term,PValue)%>%
+  ungroup()
 
+
+pander(overlap.DAVID.not1.50.UP %>%
+         select(Day,Term,PValue,Benjamini))
+
+
+write.csv(overlap.DAVID.not1.50.DOWN %>%
+            select(Day,Category,Term,PValue,Benjamini),
+          file = "overlap.DAVID.not1.50.DOWN.csv")
+
+########################Innate DB data#######################
+
+#The data from the browser didn't show any significant pvalues
+#they all appear to be 1...I saved  xls, saved as csv and then
+#read in with read.csv. Txt files gave problems with some rows
+#having missing data. and the "number of items is not a multiple of the number of columns"
+#warning
+
+getInnate<-function(day, concentration, direction){
+read.csv(file=paste("Innate",day, concentration,direction,"csv", sep="."),
+           header=TRUE)
+}
+Innate.1.50.UP<-getInnate("1","50","UP")
+
+
+Innate.4.50.UP<-getInnate("4","50","UP")
+
+Innate.7.50.UP<-getInnate("7","50","UP")
+
+Innate.14.50.UP<-getInnate("14","50","UP")
+
+Innate.14.50.UP<-getInnate("14","50","UP")
+
+#a function to find instances where pvalue !=1
+
+not1<-function(df){
+df[df$Pathway.p.value..corrected.!= 1,]
+}
+ 
+# a list of the dfs
+dfList<-list(Innate.1.50.UP,Innate.4.50.UP,
+               Innate.7.50.UP,Innate.14.50.UP)
+
+#apply not1 over the list
+lapply(dfList,FUN=not1)
+
+#looks like there aren't any rows where the pvalue !=1 except
+#in the day 7 df where there is a row with NAs
