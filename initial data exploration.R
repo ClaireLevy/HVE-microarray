@@ -173,8 +173,8 @@ write.table(x,file=paste(day,concentration,direction,"txt",sep="."),
 write.csv(x[,1],file=paste(day,concentration,direction,"csv",sep="."),
           row.names=FALSE)
 }
-
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
+###############DAVID data for dose = 50 UP ######################################
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
 #all the UPs from concentration=50
 extract("1","50","UP")
 extract("4","50","UP")
@@ -231,14 +231,21 @@ overlap.DAVID.50.UP<-allDAVID.50.UP%>%
 #if you do summarize(n())where filter is  it shows you the term and 
 #how many occurances there were in overlapTerms.50.UP. We only want the terms where
 #there there 4 occurances (1 per day we looked at)
-#a short version for easy viewing
 
-pander(overlap.DAVID.50.UP %>%
-  select(Day,Term,PValue,Benjamini),file = "overlap.50.UP")
 
-write.csv(overlap.DAVID.50.UP %>%
-            select(Day,Category,Term,PValue,Benjamini),
-          file = "overlap.DAVID.50.UP.csv")
+D50UPshort<-overlap.DAVID.50.UP%>%
+  select(Day, Category, Term, Benjamini)
+
+
+#a function to cast the data into an easy to read format
+castFunction<-function(df){
+  dcast(df, Category + Term~Day,
+        value.var = "Benjamini")
+}
+D50UPshort<-castFunction(D50UPshort)
+
+
+write.csv(D50UPshort, "overlap.DAVID.50.UP.csv")
 
 
 ###plot plot plot
@@ -286,11 +293,12 @@ overlap.DAVID.not1.50.UP<-allDAVID.not1.50.UP%>%
   ungroup()
 
 
-pander(overlap.DAVID.not1.50.UP %>%
-         select(Day,Term,PValue,Benjamini))
+Dnot1.50UPshort<-overlap.DAVID.not1.50.UP %>%
+         select(Day,Category,Term,Benjamini)
 
-write.csv(overlap.DAVID.not1.50.UP %>%
-            select(Day,Category,Term,PValue,Benjamini),
+Dnot1.50UPshort<-castFunction(Dnot1.50UPshort)
+
+write.csv(Dnot1.50UPshort,
           file = "overlap.DAVID.not1.50.UP.csv")
 
 #pvalues for those overlapping terms, more low ones for d7
@@ -300,7 +308,7 @@ ggplot(data=overlap.not1.50.UP, aes())+
   ggtitle("Uncorrected Pvalues of overlapping upreg terms in day 4,7,& 14
           \n\ dose = 50")
 
-###############Dose = 50, DOWN ##########################
+###############DAVID data for dose = 50 DOWN ############
 #extracting data from the long form summary
 extract("1","50","DOWN")
 extract("4","50","DOWN")
@@ -336,10 +344,13 @@ overlap.DAVID.50.DOWN<-allDAVID.50.DOWN%>%
   arrange(Day,Term,PValue)%>%
   ungroup()
 
-pander(select(overlap.DAVID.50.DOWN,Day,Term,PValue,Benjamini))
 
-write.csv(overlap.DAVID.50.DOWN %>%
-            select(Day,Category,Term,PValue,Benjamini),
+D50DOWNshort<-castFunction(select(overlap.DAVID.50.DOWN,
+                                  Day,Category,Term,Benjamini))
+
+
+
+write.csv(D50DOWNshort,
           file = "overlap.DAVID.50.DOWN.csv")
 ############### overlap 50 DOWN not incl day 1##############
 
@@ -354,14 +365,146 @@ overlap.DAVID.not1.50.DOWN<-allDAVID.not1.50.DOWN%>%
   ungroup()
 
 
-pander(overlap.DAVID.not1.50.UP %>%
-         select(Day,Term,PValue,Benjamini))
+Dnot1.50DOWNshort<-overlap.DAVID.not1.50.DOWN %>%
+  select(Day,Category,Term,Benjamini)
 
+Dnot1.50DOWNshort<-castFunction(Dnot1.50DOWNshort)
 
-write.csv(overlap.DAVID.not1.50.DOWN %>%
-            select(Day,Category,Term,PValue,Benjamini),
+write.csv(Dnot1.50DOWNshort,
           file = "overlap.DAVID.not1.50.DOWN.csv")
 
+
+############DAVID data for dose = 500 UP #############
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500")
+#all the UPs from concentration=50
+extract("1","500","UP")
+extract("4","500","UP")
+extract("7","500","UP")
+extract("14","500","UP")
+
+
+#Now read in the DAVID data
+DAVID.1.500.UP<-getDAVID("1","500","UP")
+DAVID.1.500.UP<-DAVID.1.500.UP%>%
+  mutate(Day= rep("1", times=nrow(DAVID.1.500.UP)))
+
+DAVID.4.500.UP<-getDAVID("4","500","UP")
+DAVID.4.500.UP<-DAVID.4.500.UP%>%
+  mutate(Day= rep("4", times=nrow(DAVID.4.500.UP)))
+
+DAVID.7.500.UP<-getDAVID("7","500","UP")
+DAVID.7.500.UP<-DAVID.7.500.UP%>%
+  mutate(Day= rep("7", times=nrow(DAVID.7.500.UP)))
+
+DAVID.14.500.UP<-getDAVID("14","500","UP")
+DAVID.14.500.UP<-DAVID.14.500.UP%>%
+  mutate(Day= rep("14", times=nrow(DAVID.14.500.UP)))
+##overlaps
+allDAVID.500.UP<-rbind(DAVID.1.500.UP,DAVID.14.500.UP,
+                        DAVID.4.500.UP,DAVID.7.500.UP)
+
+allDAVID.500.UP$Day<-factor(allDAVID.500.UP$Day,
+                             levels=c("1","4","7","14"))
+
+overlap.DAVID.500.UP<-allDAVID.500.UP%>%
+  group_by(Term)%>%
+  filter(n()==4)%>% # because there are 4 days
+  arrange(Day,Term,PValue)%>%
+  ungroup()
+
+D500UPshort<-castFunction(select(overlap.DAVID.500.UP,Day,Term,
+                     Category,Benjamini))
+
+
+write.csv(D500UPshort,
+          file = "overlap.DAVID.500.UP.csv")
+
+#####excluding day 1##############
+allDAVID.not1.500.UP<-allDAVID.500.UP%>%
+  filter(Day !=1)
+
+
+overlap.DAVID.not1.500.UP<-allDAVID.not1.500.UP%>%
+  group_by(Term)%>%
+  filter(n()==3)%>% # because there are 3 days
+  arrange(Day,Term,PValue)%>%
+  ungroup()
+
+
+Dnot1.500UPshort<-overlap.DAVID.not1.500.UP %>%
+  select(Day,Category,Term,Benjamini)
+
+Dnot1.500UPshort<-castFunction(Dnot1.500UPshort)
+
+write.csv(Dnot1.500UPshort,
+          file = "overlap.DAVID.not1.500.UP.csv")
+
+###############DAVID data for dose = 500 DOWN ###########
+
+extract("1","500","DOWN")
+extract("4","500","DOWN")
+extract("7","500","DOWN")
+extract("14","500","DOWN")
+
+#Now read in the DAVID data
+DAVID.1.500.DOWN<-getDAVID("1","500","DOWN")
+DAVID.1.500.DOWN<-DAVID.1.500.DOWN%>%
+  mutate(Day= rep("1", times=nrow(DAVID.1.500.DOWN)))
+
+DAVID.4.500.DOWN<-getDAVID("4","500","DOWN")
+DAVID.4.500.DOWN<-DAVID.4.500.DOWN%>%
+  mutate(Day= rep("4", times=nrow(DAVID.4.500.DOWN)))
+
+DAVID.7.500.DOWN<-getDAVID("7","500","DOWN")
+DAVID.7.500.DOWN<-DAVID.7.500.DOWN%>%
+  mutate(Day= rep("7", times=nrow(DAVID.7.500.DOWN)))
+
+DAVID.14.500.DOWN<-getDAVID("14","500","DOWN")
+DAVID.14.500.DOWN<-DAVID.14.500.DOWN%>%
+  mutate(Day= rep("14", times=nrow(DAVID.14.500.DOWN)))
+##overlaps
+allDAVID.500.DOWN<-rbind(DAVID.1.500.DOWN,DAVID.14.500.DOWN,
+                       DAVID.4.500.DOWN,DAVID.7.500.DOWN)
+
+allDAVID.500.DOWN$Day<-factor(allDAVID.500.DOWN$Day,
+                            levels=c("1","4","7","14"))
+
+overlap.DAVID.500.DOWN<-allDAVID.500.DOWN%>%
+  group_by(Term)%>%
+  filter(n()==4)%>% # because there are 4 days
+  arrange(Day,Term,PValue)%>%
+  ungroup()
+
+D500DOWNshort<-castFunction(select(overlap.DAVID.500.DOWN,Day,Term,
+                                 Category,Benjamini))
+
+
+write.csv(D500DOWNshort,
+          file = "overlap.DAVID.500.DOWN.csv")
+
+#####excluding day 1##############
+allDAVID.not1.500.DOWN<-allDAVID.500.DOWN%>%
+  filter(Day !=1)
+
+
+overlap.DAVID.not1.500.DOWN<-allDAVID.not1.500.DOWN%>%
+  group_by(Term)%>%
+  filter(n()==3)%>% # because there are 3 days
+  arrange(Day,Term,PValue)%>%
+  ungroup()
+
+
+Dnot1.500DOWNshort<-overlap.DAVID.not1.500.DOWN %>%
+  select(Day,Category,Term,Benjamini)
+
+Dnot1.500DOWNshort<-castFunction(Dnot1.500DOWNshort)
+
+write.csv(Dnot1.500DOWNshort,
+          file = "overlap.DAVID.not1.500.DOWN.csv")
+
+
+
+#############################################################
 ########################Innate DB data#######################
 
 #The data from the browser didn't show any significant pvalues
@@ -423,19 +566,34 @@ identical(Innate.7.50.DOWN,Innate.7.50.UP)
 
 
 ############ biomaRt#############################
-#Goal: get GO ids and name from bioMaRt from list of entrez ids
-UP.50.1<-read.table("1.50.UP.txt", sep="\t", header = FALSE)
-head(UP.50.1)
+#Goal: get GO ids and terms from bioMaRt from list of entrez ids
+
+require(illuminaHumanv4.db)
+require(biomaRt)
+
+UP<-longForm%>%
+  filter(Direction == "UP")
 #make a vector of the ids to annotate
-entrez<-as.vector(UP.50.1$V1)
+UPentrez<-UP$ENTREZ_GENE_ID
 
 #set the mart you want to use (see listMarts())
 #and choose the dataset to use see listDatasets()
 
 ensembl<-useMart("ensembl",dataset="hsapiens_gene_ensembl")
 
+#attributes: the values you want
+#filters: the data biomaRt should look at and retrieve attributes for   
+
 #the attribute for go term name is "name_1066"
+
+
+#This is a list of the entrez ids and the associated go terms and IDs
 goids<-getBM(attributes=c("entrezgene","go_id","name_1006"),
-            filters = "entrezgene",values=entrez,
+            filters = "entrezgene",values=UPentrez,
             mart = ensembl)
 
+# Remove genes with no Entrez
+
+entrezIds<-mget()
+
+#This has the potential to minimize all the txt and csv files..
