@@ -509,19 +509,29 @@ write.csv(Dnot1.500DOWNshort,
 ########################Innate DB data#######################
 
 #################### I tried this but it didn't work :( 
+
 #Innate.50.UPfiles<-file.path("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50",
                              c("InnateDB-1.50.up.txt","InnateDB-4.50.up.txt",
                 "InnateDB-7.50.up.txt","InnateDB-14.50.up.txt"))
+
+
 #Innate.50.UP<-lapply(Innate.50.UPfiles,read.table, sep="\t")
 ########################################################
 
+getInnate<-function(day,concentration,direction){
+  read.table(file = paste("InnateDB",day,concentration,direction,"txt", sep="."),
+           sep = "\t",header=TRUE, quote="")
+}
 
-Innate.1.50.UP<-read.table("InnateDB-1.50.up.txt",
-                                  sep = "\t", header = TRUE)
-Innate.1.50.UP<-mutate(Innate.1.50.UP,
-                       Day = rep("1",times=nrow(Innate.1.50.UP))
-                 
-                       
+Innate.1.50.UP<-getInnate("1","50","UP")
+
+Innate.4.50.UP<-getInnate("4","50","UP")
+
+Innate.7.50.UP<-getInnate("7","50","UP")
+ 
+Innate.14.50.UP<-getInnate("14","50","UP")
+
+which(count.fields("InnateDB.4.50.UP.txt", sep="\t")!=10)                       
 
 ##function to separate out the GO ids in the DAVID data
 ##so they can be compared with innate data
@@ -531,39 +541,52 @@ getGO<-function(df){
                             substr(df$Term,1,10),NA))
 }
 
-DAVID.1.50.UP<-getGO(DAVID.1.50.UP)
+#make a list of the david data frames
+DAVID.50.UPdfs<-list(DAVID.1.50.UP,DAVID.4.50.UP,DAVID.7.50.UP,
+              DAVID.14.50.UP)
+
+#apply the getGO function over them so they all have GO ids
+DAVID.50.UPdfs<-lapply(DAVID.50.UPdfs,getGO)
 
 
 
 #which GO ids are in both innate and david data for day 1 dose = 50?
 InnateDAVID<-function(DAVIDdf,Innatedf){
-  merge(DAVIDdf,Innatedf, by = "Pathway.Id")
-  select(Day,Term,Pathway.p.value..corrected.,Benjamini)
+  x<-merge(DAVIDdf,Innatedf, by = "Pathway.Id")
+  x[,c("Day","Term","Pathway.p.value..corrected.","Benjamini")]
 }
 
 
+#Subset from the DAVID dfs list so it has go ids
+ID.1.50.UP<-InnateDAVID(DAVID.50.UPdfs[1],Innate.1.50.UP)
 
-x<-select(merge(DAVID.1.50.UP,Innate.1.50.UP, by="Pathway.Id"),
-          Day,Term,Pathway.p.value..corrected.,Benjamini)
+ID.4.50.UP<-InnateDAVID(DAVID.50.UPdfs[2],Innate.4.50.UP)
 
+ID.7.50.UP<-InnateDAVID(DAVID.50.UPdfs[3],Innate.7.50.UP)
 
-pander(x)
-
-select(x,Day,Term,Pathway.p.value..corrected.,Benjamini )
+ID.14.50.UP<-InnateDAVID(DAVID.50.UPdfs[4],Innate.14.50.UP)         
          
+#combine all of the merged (overlapping GO term) data          
+allID.50.UP<-rbind(ID.1.50.UP,ID.4.50.UP,ID.7.50.UP,ID.14.50.UP)
+
+names(allID.50.UP)[3:4]<-c("InnateDB.p.value","DAVID.p.value")
+
+
+#calculate the abs value of the difference between p values
+# and arrange by day and that difference
+#Terms are the top of the list for each day have 
+#most similar p values. Both are Benj corrected
+#I THINK DAVID data is a correction fisher's exact
+#Innate is a correction of Hypergeometric
+  
+allID.50.UP<-allID.50.UP %>%
+  mutate(abs.difference = abs(InnateDB.p.value-DAVID.p.value))%>%
+  arrange(Day,abs.difference)
          
-          
+write.csv(allID.50.UP,"allID.50.UP.csv")
 
 
 
-
-
-
-
-
-GO<-DAVID.1.50.UP$Pathway.Id %in% Innate.1.50.UP$Pathway.Id
-merge(subset(DAVID.1.50.UP,GO),
-      subset(Innate.1.50.UP,GO), by=("Pathway.Id")
 
 ############ biomaRt#############################
 #Goal: get GO ids and terms from bioMaRt from list of entrez ids
