@@ -374,6 +374,7 @@ write.csv(Dnot1.50DOWNshort,
           file = "overlap.DAVID.not1.50.DOWN.csv")
 
 
+
 ############DAVID data for dose = 500 UP #############
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500")
 #all the UPs from concentration=50
@@ -507,63 +508,62 @@ write.csv(Dnot1.500DOWNshort,
 #############################################################
 ########################Innate DB data#######################
 
-#The data from the browser didn't show any significant pvalues
-#they all appear to be 1...I saved  xls, saved as csv and then
-#read in with read.csv. Txt files gave problems with some rows
-#having missing data. and the "number of items is not a multiple of the number of columns"
-#warning
+#################### I tried this but it didn't work :( 
+#Innate.50.UPfiles<-file.path("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50",
+                             c("InnateDB-1.50.up.txt","InnateDB-4.50.up.txt",
+                "InnateDB-7.50.up.txt","InnateDB-14.50.up.txt"))
+#Innate.50.UP<-lapply(Innate.50.UPfiles,read.table, sep="\t")
+########################################################
 
-getInnate<-function(day, concentration, direction){
-read.csv(file = paste("Innate",day, concentration,direction,"csv", sep="."),
-           header=TRUE)
+
+Innate.1.50.UP<-read.table("InnateDB-1.50.up.txt",
+                                  sep = "\t", header = TRUE)
+Innate.1.50.UP<-mutate(Innate.1.50.UP,
+                       Day = rep("1",times=nrow(Innate.1.50.UP))
+                 
+                       
+
+##function to separate out the GO ids in the DAVID data
+##so they can be compared with innate data
+getGO<-function(df){
+  mutate(df,
+         Pathway.Id= ifelse(str_detect(df$Term,"GO:")==TRUE,
+                            substr(df$Term,1,10),NA))
 }
 
-#there is a better way to do this with an apply function
-#but I haven't figured it out yet.
-Innate.1.50.UP<-getInnate("1","50","UP")
+DAVID.1.50.UP<-getGO(DAVID.1.50.UP)
 
-Innate.4.50.UP<-getInnate("4","50","UP")
 
-Innate.7.50.UP<-getInnate("7","50","UP")
 
-Innate.14.50.UP<-getInnate("14","50","UP")
-
-Innate.14.50.UP<-getInnate("14","50","UP")
-
-#a function to find instances where pvalue !=1
-
-not1<-function(df){
-df[df$Pathway.p.value..corrected.!= 1,]
+#which GO ids are in both innate and david data for day 1 dose = 50?
+InnateDAVID<-function(DAVIDdf,Innatedf){
+  merge(DAVIDdf,Innatedf, by = "Pathway.Id")
+  select(Day,Term,Pathway.p.value..corrected.,Benjamini)
 }
- 
-# a list of the dfs
-dfList<-list(Innate.1.50.UP,Innate.4.50.UP,
-               Innate.7.50.UP,Innate.14.50.UP)
 
-#apply not1 over the list
-lapply(dfList,FUN=not1)
 
-#looks like there aren't any rows where the pvalue !=1 except
-#in the day 7 df where there is a row with NAs
 
-##now the down innate data for dose = 50
+x<-select(merge(DAVID.1.50.UP,Innate.1.50.UP, by="Pathway.Id"),
+          Day,Term,Pathway.p.value..corrected.,Benjamini)
 
-Innate.1.50.DOWN<-getInnate("1","50","DOWN")
-Innate.4.50.DOWN<-getInnate("4","50","DOWN")
-Innate.7.50.DOWN<-getInnate("7","50","DOWN")
-Innate.14.50.DOWN<-getInnate("14","50","DOWN")
 
-dfList2<-list(Innate.1.50.DOWN,Innate.4.50.DOWN,
-             Innate.7.50.DOWN,Innate.14.50.DOWN)
+pander(x)
 
-lapply(dfList2, FUN=not1)
-sum(is.na(Innate.7.50.DOWN))
+select(x,Day,Term,Pathway.p.value..corrected.,Benjamini )
+         
+         
+          
 
-sum(is.na(Innate.7.50.UP))
-identical(Innate.7.50.DOWN,Innate.7.50.UP)
-#looks like 5 rows with NA in both UP and DOWN for 7.50
-#but they aren't the same so I didn't read in the wrong thing
 
+
+
+
+
+
+
+GO<-DAVID.1.50.UP$Pathway.Id %in% Innate.1.50.UP$Pathway.Id
+merge(subset(DAVID.1.50.UP,GO),
+      subset(Innate.1.50.UP,GO), by=("Pathway.Id")
 
 ############ biomaRt#############################
 #Goal: get GO ids and terms from bioMaRt from list of entrez ids
@@ -572,7 +572,7 @@ require(illuminaHumanv4.db)
 require(biomaRt)
 
 UP<-longForm%>%
-  filter(Direction == "UP")
+  filter(Direction == "UP", ENTREZ_GENE_ID)
 #make a vector of the ids to annotate
 UPentrez<-UP$ENTREZ_GENE_ID
 
