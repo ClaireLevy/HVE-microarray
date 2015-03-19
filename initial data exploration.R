@@ -159,6 +159,8 @@ source("DEG-to-long-form.R")
 #the table is for innateDB.
 #the csv is for david where you just put in the IDs
 #For innateDB upload: first col is entrez, second is log2foldchange, 3rd is adj pval)
+
+
 extract<-function(day,concentration,direction){
 x<-longForm[longForm$Day == day &
               
@@ -173,55 +175,44 @@ write.table(x,file=paste(day,concentration,direction,"txt",sep="."),
 write.csv(x[,1],file=paste(day,concentration,direction,"csv",sep="."),
           row.names=FALSE)
 }
+
 ###############DAVID data for dose = 50 UP ######################################
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
-#all the UPs from concentration=50
-extract("1","50","UP")
-extract("4","50","UP")
-extract("7","50","UP")
-extract("14","50","UP")
+#NOTE: on DAVID site I used the illumina HT 12 v3 background 
+# and  in the functional annotation chart,under options
+#checked "Fisher exact", then reran with options and saved.
 
-
-#get DAVID data (saved as tab delim txt)
-#left the defaults but chose "Fisher's exact" under options
-# and chose to include a column for Foldchange
-
-#here is function for getting the DAVID data out of the folder
-#I also added a column to each df saying which day it represented
-getDAVID<-function(day, concentration, direction){
- y<-read.csv(file=paste("DAVID",day, concentration,direction,"csv", sep="."),
-               header=TRUE)
-}
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray")
 
 #extract the david data from the folder where I saved it
-DAVID.1.50.UP<-getDAVID("1","50","UP")
-DAVID.1.50.UP<-DAVID.1.50.UP%>%
-  mutate(Day= rep("1", times=nrow(DAVID.1.50.UP)))
 
+#make a list of the files I want
+DAVIDlist50<-list.files("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50",
+                        pattern = "^DAVID")
 
-DAVID.4.50.UP<-getDAVID("4","50","UP")
-DAVID.4.50.UP<-DAVID.4.50.UP%>%
-  mutate(Day= rep("4", times=nrow(DAVID.4.50.UP)))
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
 
+#apply read.csv over the list
+DAVIDdata50<-lapply(DAVIDlist50,read.csv)
 
-DAVID.7.50.UP<-getDAVID("7","50","UP")
-DAVID.7.50.UP<-DAVID.7.50.UP%>%
-  mutate(Day= rep("7", times=nrow(DAVID.7.50.UP)))
+#give the list elements names
 
+names(DAVIDdata50)<- str_replace(DAVIDlist50, pattern = ".csv", replacement = "")
 
-DAVID.14.50.UP<-getDAVID("14","50","UP")
-DAVID.14.50.UP<-DAVID.14.50.UP%>%
-  mutate(Day = rep("14", times=nrow(DAVID.14.50.UP)))
+#check the order by looking at names(DAVIDdata)
+#make a list for day and direction 
+dayList<-list(1,1,14,14,4,4,7,7)
+directionList<-list("DOWN","UP")
 
-#combine all the data frames
-allDAVID.50.UP<-rbind(DAVID.1.50.UP,DAVID.4.50.UP,DAVID.7.50.UP,DAVID.14.50.UP)
+# add columns to the dfs for day and direction
+DAVIDdata50<-Map(cbind,DAVIDdata50,Day=dayList)
+DAVIDdata50<-Map(cbind,DAVIDdata50,direction=directionList)
 
-#make Day a factor
-allDAVID.50.UP$Day<-factor(allDAVID.50.UP$Day, levels=c("1","4","7","14"))
-                           
+#make the list of dfs into one df
 
-##DF showing overlapping terms for dose = 50 days 1,4,7,14
-overlap.DAVID.50.UP<-allDAVID.50.UP%>%
+allDAVID50<-dplyr::rbind_all(DAVIDdata50)
+
+overlapDAVID50up<-allDAVID50%>%
+  filter(direction=="UP")%>%
   group_by(Term)%>%
   filter(n()==4)%>% # because there are 4 days
   arrange(Day,Term,PValue)%>%
@@ -233,7 +224,7 @@ overlap.DAVID.50.UP<-allDAVID.50.UP%>%
 #there there 4 occurances (1 per day we looked at)
 
 
-D50UPshort<-overlap.DAVID.50.UP%>%
+overlapDAVID50upshort<-overlapDAVID50up%>%
   select(Day, Category, Term, Benjamini)
 
 
@@ -242,68 +233,51 @@ castFunction<-function(df){
   dcast(df, Category + Term~Day,
         value.var = "Benjamini")
 }
-D50UPshort<-castFunction(D50UPshort)
+overlapDAVID50upshort<-castFunction(overlapDAVID50upshort)
 
 
-write.csv(D50UPshort, "overlap.DAVID.50.UP.csv")
+write.csv(overlapDAVID50upshort, "overlap.DAVID.50.UP.csv")
 
 
 ###plot plot plot
-#note that I changed the x axis labels to a shortened version
-# of the term for readability
 
-#Pvalues
-ggplot(data=overlap.50.UP, aes())+
-  geom_point(aes(x = Term , y =PValue,color=Day),
-             position=position_jitter(w=0.15),size=4)+
+#Pvalues plot
+plot150UP<-ggplot(data=overlapDAVID50up, aes())+
+  geom_point(aes(x = Day , y = Benjamini),
+             position=position_jitter(w=0.15),
+             size=3, 
+             alpha = 0.7)+
   geom_hline(y=0.05)+
-  scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
-                            "Nuclear body","Nuclear speck"))+
-  ggtitle("GSEA P-values for overlapping GO terms \n\ in Up-regulated genes,dose=50")
+  ggtitle("P-values for overlapping GO terms \n\ in Up-regulated genes,dose=50")
   
 
-#Fold enrichment
-ggplot(data=overlap.50.UP, aes())+
-  geom_point(aes(x = Term , y =Fold.Enrichment,color=Day),
-             position=position_jitter(w=0.15),size=4)+
-  scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
-                            "Nuclear body","Nuclear speck"))+
-  ggtitle("Fold Enrichment for overlapping GO terms \n\ in Up-regulated genes,dose=50")
-
-#Count of genes relating to the term
-
-ggplot(data=overlap.50.UP, aes())+
-  geom_point(aes(x = Term , y =Count,color=Day),
-             position=position_jitter(w=0.15),size=4)+
-  scale_x_discrete(labels=c("Acetylation","Cytoskeleton",
-                            "Nuclear body","Nuclear speck"))+
-  ggtitle("Number of up-regulated genes associated with overlapping terms \n\
-dose=50")
-
-#################Overlapping terms not incl day 1###########\
-
-allDAVID.not1.50.UP<-allDAVID.50.UP%>%
-  filter(Day !=1)
+# This will save a 400x400 file at 100 ppi
+ggsave("plot150UP.png", width=4, height=4, dpi=100)
 
 
-overlap.DAVID.not1.50.UP<-allDAVID.not1.50.UP%>%
+#########DAVID data for dose = 50 UP not incl day 1###########\
+overlapDAVIDnot150up<-allDAVID50 %>%
+  filter(direction=="UP", Day!="1")%>%
   group_by(Term)%>%
-  filter(n()==3)%>% # because there are 3 days
+  filter(n()==3)%>% # because there are 4 days
   arrange(Day,Term,PValue)%>%
   ungroup()
 
 
-Dnot1.50UPshort<-overlap.DAVID.not1.50.UP %>%
+
+overlapDAVIDnot150upshort<-overlapDAVIDnot150up %>%
          select(Day,Category,Term,Benjamini)
 
-Dnot1.50UPshort<-castFunction(Dnot1.50UPshort)
+overlapDAVIDnot150upshort<-castFunction(overlapDAVIDnot150upshort)
 
-write.csv(Dnot1.50UPshort,
+write.csv(overlapDAVIDnot150upshort,
           file = "overlap.DAVID.not1.50.UP.csv")
 
 #pvalues for those overlapping terms, more low ones for d7
-ggplot(data=overlap.not1.50.UP, aes())+
-  geom_point(aes(x = Day , y = PValue),size=4,alpha=0.1)+
+ggplot(data=overlap.DAVID.not1.50.UP, aes())+
+  geom_point(aes(x = Day , y = Benjamini),
+             position=position_jitter(w=0.15),size=3,
+             alpha=0.2)+
   geom_hline(y=0.05)+
   ggtitle("Uncorrected Pvalues of overlapping upreg terms in day 4,7,& 14
           \n\ dose = 50")
@@ -315,193 +289,120 @@ extract("4","50","DOWN")
 extract("7","50","DOWN")
 extract("14","50","DOWN")
 
-#Now read in the DAVID data
-DAVID.1.50.DOWN<-getDAVID("1","50","DOWN")
-DAVID.1.50.DOWN<-DAVID.1.50.DOWN%>%
-  mutate(Day= rep("1", times=nrow(DAVID.1.50.DOWN)))
 
-DAVID.4.50.DOWN<-getDAVID("4","50","DOWN")
-DAVID.4.50.DOWN<-DAVID.4.50.DOWN%>%
-  mutate(Day= rep("4", times=nrow(DAVID.4.50.DOWN)))
-
-DAVID.7.50.DOWN<-getDAVID("7","50","DOWN")
-DAVID.7.50.DOWN<-DAVID.7.50.DOWN%>%
-  mutate(Day= rep("7", times=nrow(DAVID.7.50.DOWN)))
-
-DAVID.14.50.DOWN<-getDAVID("14","50","DOWN")
-DAVID.14.50.DOWN<-DAVID.14.50.DOWN%>%
-  mutate(Day= rep("14", times=nrow(DAVID.14.50.DOWN)))
-
-allDAVID.50.DOWN<-rbind(DAVID.1.50.DOWN,DAVID.14.50.DOWN,
-                        DAVID.4.50.DOWN,DAVID.7.50.DOWN)
-
-allDAVID.50.DOWN$Day<-factor(allDAVID.50.DOWN$Day,
-                             levels=c("1","4","7","14"))
-
-overlap.DAVID.50.DOWN<-allDAVID.50.DOWN%>%
+overlapDAVID50DOWN<-allDAVID50 %>%
+  filter(direction=="DOWN")%>%
   group_by(Term)%>%
   filter(n()==4)%>% # because there are 4 days
   arrange(Day,Term,PValue)%>%
   ungroup()
 
 
-D50DOWNshort<-castFunction(select(overlap.DAVID.50.DOWN,
+ggplot(data=overlapDAVID50DOWN, aes())+
+  geom_point(aes(x = Day , y = Benjamini),
+             position=position_jitter(w=0.15),size=3)+
+  geom_hline(y=0.05)+
+  ggtitle("P-values for overlapping GO terms \n\ in DOWN-regulated genes,dose=50")
+
+
+
+overlapDAVID50DOWN<-castFunction(select(overlapDAVID50DOWN,
                                   Day,Category,Term,Benjamini))
 
 
 
-write.csv(D50DOWNshort,
+write.csv(overlapDAVID50DOWN,
           file = "overlap.DAVID.50.DOWN.csv")
-############### overlap 50 DOWN not incl day 1##############
-
-allDAVID.not1.50.DOWN<-allDAVID.50.DOWN%>%
-  filter(Day !=1)
-
-
-overlap.DAVID.not1.50.DOWN<-allDAVID.not1.50.DOWN%>%
+##############DAVID data for dose = 50 DOWN not incl day 1##############
+overlapDAVIDnot150DOWN<-allDAVID50 %>%
+  filter(direction=="DOWN", Day!="1")%>%
   group_by(Term)%>%
-  filter(n()==3)%>% # because there are 3 days
+  filter(n()==3)%>% # because there are 4 days
   arrange(Day,Term,PValue)%>%
   ungroup()
 
 
-Dnot1.50DOWNshort<-overlap.DAVID.not1.50.DOWN %>%
+
+overlapDAVIDnot150DOWNshort<-overlapDAVIDnot150DOWN %>%
   select(Day,Category,Term,Benjamini)
 
-Dnot1.50DOWNshort<-castFunction(Dnot1.50DOWNshort)
+overlapDAVIDnot150DOWNshort<-castFunction(overlapDAVIDnot150DOWNshort)
 
-write.csv(Dnot1.50DOWNshort,
+write.csv(overlapDAVIDnot150DOWNshort,
           file = "overlap.DAVID.not1.50.DOWN.csv")
 
 
-
 ############DAVID data for dose = 500 UP #############
+DAVIDlist500<-list.files("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500",
+                        pattern = "^DAVID")
+
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500")
-#all the UPs from concentration=50
-extract("1","500","UP")
-extract("4","500","UP")
-extract("7","500","UP")
-extract("14","500","UP")
+
+#apply read.csv over the list
+DAVIDdata500<-lapply(DAVIDlist500,read.csv)
+
+#give the list elements names
+
+names(DAVIDdata50)<- str_replace(DAVIDlist500, pattern = ".csv", replacement = "")
 
 
-#Now read in the DAVID data
-DAVID.1.500.UP<-getDAVID("1","500","UP")
-DAVID.1.500.UP<-DAVID.1.500.UP%>%
-  mutate(Day= rep("1", times=nrow(DAVID.1.500.UP)))
+# add columns to the dfs for day and direction
+#using dayList and directionList from above
+DAVIDdata500<-Map(cbind,DAVIDdata500,Day=dayList)
+DAVIDdata500<-Map(cbind,DAVIDdata500,direction=directionList)
 
-DAVID.4.500.UP<-getDAVID("4","500","UP")
-DAVID.4.500.UP<-DAVID.4.500.UP%>%
-  mutate(Day= rep("4", times=nrow(DAVID.4.500.UP)))
+#make the list of dfs into one df
 
-DAVID.7.500.UP<-getDAVID("7","500","UP")
-DAVID.7.500.UP<-DAVID.7.500.UP%>%
-  mutate(Day= rep("7", times=nrow(DAVID.7.500.UP)))
+allDAVID500<-dplyr::rbind_all(DAVIDdata500)
 
-DAVID.14.500.UP<-getDAVID("14","500","UP")
-DAVID.14.500.UP<-DAVID.14.500.UP%>%
-  mutate(Day= rep("14", times=nrow(DAVID.14.500.UP)))
-##overlaps
-allDAVID.500.UP<-rbind(DAVID.1.500.UP,DAVID.14.500.UP,
-                        DAVID.4.500.UP,DAVID.7.500.UP)
-
-allDAVID.500.UP$Day<-factor(allDAVID.500.UP$Day,
-                             levels=c("1","4","7","14"))
-
-overlap.DAVID.500.UP<-allDAVID.500.UP%>%
+overlapDAVID500up<-allDAVID500%>%
+  filter(direction=="UP")%>%
   group_by(Term)%>%
   filter(n()==4)%>% # because there are 4 days
   arrange(Day,Term,PValue)%>%
   ungroup()
 
-D500UPshort<-castFunction(select(overlap.DAVID.500.UP,Day,Term,
-                     Category,Benjamini))
 
 
-write.csv(D500UPshort,
-          file = "overlap.DAVID.500.UP.csv")
-
-#####excluding day 1##############
-allDAVID.not1.500.UP<-allDAVID.500.UP%>%
-  filter(Day !=1)
+overlapDAVID500upshort<-overlapDAVID500up%>%
+  select(Day, Category, Term, Benjamini)
 
 
-overlap.DAVID.not1.500.UP<-allDAVID.not1.500.UP%>%
+#use castFunction
+overlapDAVID500upshort<-castFunction(overlapDAVID500upshort)
+
+
+write.csv(overlapDAVID500upshort, "overlap.DAVID.500.UP.csv")
+
+
+###############DAVID data for dose = 500 UP excluding day 1##############
+overlapDAVIDnot1500up<-allDAVID500 %>%
+  filter(direction=="UP", Day!="1")%>%
   group_by(Term)%>%
-  filter(n()==3)%>% # because there are 3 days
+  filter(n()==3)%>% # because there are 4 days
   arrange(Day,Term,PValue)%>%
   ungroup()
 
 
-Dnot1.500UPshort<-overlap.DAVID.not1.500.UP %>%
+
+overlapDAVIDnot1500upshort<-overlapDAVIDnot1500up %>%
   select(Day,Category,Term,Benjamini)
 
-Dnot1.500UPshort<-castFunction(Dnot1.500UPshort)
+overlapDAVIDnot1500upshort<-castFunction(overlapDAVIDnot1500upshort)
 
-write.csv(Dnot1.500UPshort,
+write.csv(overlapDAVIDnot1500upshort,
           file = "overlap.DAVID.not1.500.UP.csv")
 
-###############DAVID data for dose = 500 DOWN ###########
 
+###############DAVID data for dose = 500 DOWN ###########
+##################DAVID DATA NEEDS TO BE CORRECTED##########
 extract("1","500","DOWN")
 extract("4","500","DOWN")
 extract("7","500","DOWN")
 extract("14","500","DOWN")
 
-#Now read in the DAVID data
-DAVID.1.500.DOWN<-getDAVID("1","500","DOWN")
-DAVID.1.500.DOWN<-DAVID.1.500.DOWN%>%
-  mutate(Day= rep("1", times=nrow(DAVID.1.500.DOWN)))
-
-DAVID.4.500.DOWN<-getDAVID("4","500","DOWN")
-DAVID.4.500.DOWN<-DAVID.4.500.DOWN%>%
-  mutate(Day= rep("4", times=nrow(DAVID.4.500.DOWN)))
-
-DAVID.7.500.DOWN<-getDAVID("7","500","DOWN")
-DAVID.7.500.DOWN<-DAVID.7.500.DOWN%>%
-  mutate(Day= rep("7", times=nrow(DAVID.7.500.DOWN)))
-
-DAVID.14.500.DOWN<-getDAVID("14","500","DOWN")
-DAVID.14.500.DOWN<-DAVID.14.500.DOWN%>%
-  mutate(Day= rep("14", times=nrow(DAVID.14.500.DOWN)))
-##overlaps
-allDAVID.500.DOWN<-rbind(DAVID.1.500.DOWN,DAVID.14.500.DOWN,
-                       DAVID.4.500.DOWN,DAVID.7.500.DOWN)
-
-allDAVID.500.DOWN$Day<-factor(allDAVID.500.DOWN$Day,
-                            levels=c("1","4","7","14"))
-
-overlap.DAVID.500.DOWN<-allDAVID.500.DOWN%>%
-  group_by(Term)%>%
-  filter(n()==4)%>% # because there are 4 days
-  arrange(Day,Term,PValue)%>%
-  ungroup()
-
-D500DOWNshort<-castFunction(select(overlap.DAVID.500.DOWN,Day,Term,
-                                 Category,Benjamini))
-
-
-write.csv(D500DOWNshort,
-          file = "overlap.DAVID.500.DOWN.csv")
 
 #####excluding day 1##############
-allDAVID.not1.500.DOWN<-allDAVID.500.DOWN%>%
-  filter(Day !=1)
-
-
-overlap.DAVID.not1.500.DOWN<-allDAVID.not1.500.DOWN%>%
-  group_by(Term)%>%
-  filter(n()==3)%>% # because there are 3 days
-  arrange(Day,Term,PValue)%>%
-  ungroup()
-
-
-Dnot1.500DOWNshort<-overlap.DAVID.not1.500.DOWN %>%
-  select(Day,Category,Term,Benjamini)
-
-Dnot1.500DOWNshort<-castFunction(Dnot1.500DOWNshort)
-
-write.csv(Dnot1.500DOWNshort,
-          file = "overlap.DAVID.not1.500.DOWN.csv")
 
 
 
@@ -522,6 +423,7 @@ getInnate<-function(day,concentration,direction){
   read.table(file = paste("InnateDB",day,concentration,direction,"txt", sep="."),
            sep = "\t",header=TRUE, quote="")
 }
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
 
 Innate.1.50.UP<-getInnate("1","50","UP")
 
@@ -530,8 +432,7 @@ Innate.4.50.UP<-getInnate("4","50","UP")
 Innate.7.50.UP<-getInnate("7","50","UP")
  
 Innate.14.50.UP<-getInnate("14","50","UP")
-
-which(count.fields("InnateDB.4.50.UP.txt", sep="\t")!=10)                       
+                      
 
 ##function to separate out the GO ids in the DAVID data
 ##so they can be compared with innate data
@@ -551,38 +452,63 @@ DAVID.50.UPdfs<-lapply(DAVID.50.UPdfs,getGO)
 
 
 #which GO ids are in both innate and david data for day 1 dose = 50?
-InnateDAVID<-function(DAVIDdf,Innatedf){
-  x<-merge(DAVIDdf,Innatedf, by = "Pathway.Id")
-  x[,c("Day","Term","Pathway.p.value..corrected.","Benjamini")]
-}
+
+#USe the InnateDAVID function to merge
+
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
+source("InnateDAVIDoverlap.R")
 
 
-#Subset from the DAVID dfs list so it has go ids
-ID.1.50.UP<-InnateDAVID(DAVID.50.UPdfs[1],Innate.1.50.UP)
+#(Subset from the DAVID dfs list to refer to the one
+#you want)
 
-ID.4.50.UP<-InnateDAVID(DAVID.50.UPdfs[2],Innate.4.50.UP)
+ID.1.50.UP<-InnateDAVID(DAVID.50.UPdfs[1],Innate.1.50.UP,50)
 
-ID.7.50.UP<-InnateDAVID(DAVID.50.UPdfs[3],Innate.7.50.UP)
+ID.4.50.UP<-InnateDAVID(DAVID.50.UPdfs[2],Innate.4.50.UP,50)
 
-ID.14.50.UP<-InnateDAVID(DAVID.50.UPdfs[4],Innate.14.50.UP)         
+ID.7.50.UP<-InnateDAVID(DAVID.50.UPdfs[3],Innate.7.50.UP,50)
+
+ID.14.50.UP<-InnateDAVID(DAVID.50.UPdfs[4],Innate.14.50.UP,50)         
          
 #combine all of the merged (overlapping GO term) data          
-allID.50.UP<-rbind(ID.1.50.UP,ID.4.50.UP,ID.7.50.UP,ID.14.50.UP)
+allID.50.UP<-rbind(ID.1.50.UP,ID.4.50.UP,
+                   ID.7.50.UP,ID.14.50.UP)
 
 names(allID.50.UP)[3:4]<-c("InnateDB.p.value","DAVID.p.value")
 
 
 #calculate the abs value of the difference between p values
-# and arrange by day and that difference
+#and arrange by day and that difference
 #Terms are the top of the list for each day have 
 #most similar p values. Both are Benj corrected
-#I THINK DAVID data is a correction fisher's exact
+#I THINK DAVID data is a correction of fisher's exact
 #Innate is a correction of Hypergeometric
   
 allID.50.UP<-allID.50.UP %>%
   mutate(abs.difference = abs(InnateDB.p.value-DAVID.p.value))%>%
   arrange(Day,abs.difference)
-         
+
+allID.50.UP$Day<-factor(allID.50.UP$Day, levels=c("1","4","7","14"))
+
+#InnateDB and DAVID p values
+ggplot(allID.50.UP, aes(x = Day, y = value, color = variable))+
+  geom_point(aes(y=InnateDB.p.value,
+                 col="InnateDB.p.value"),
+             position=position_jitter(w=0.15),alpha=0.5)+
+  geom_point(aes(y=DAVID.p.value, col="DAVID.p.value"),
+             position=position_jitter(w=0.15),alpha=0.5)+
+  labs(y="Benjamini")+
+  theme(legend.title=element_blank())+
+  ggtitle("Overlapping GO terms from InnateDB and DAVID ORA \n\
+up-regulated genes, dose = 50")
+
+#InnateDB VS DAVID pvalues, limited 0-0.05
+ggplot(allID.50.UP, aes(x = DAVID.p.value, y = InnateDB.p.value))+
+  geom_point(aes())+
+  scale_x_continuous(limits=c(0,0.05))+
+  scale_y_continuous(limits= c(0,0.05))
+
+
 write.csv(allID.50.UP,"allID.50.UP.csv")
 
 
