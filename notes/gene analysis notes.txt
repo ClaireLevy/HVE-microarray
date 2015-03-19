@@ -73,6 +73,20 @@ Innate DB
 Can input 10 samples at a time. Id is required and you can also enter expression values and p values. Looks like the output is more slick than DAVID
 
 ===================================================================================
-GO
+GSEA vs ORA?
 
-The manual was too slim for me to get a good idea of how to use it. Newer features seem to be in development now? 
+From 10.1093/bioinformatics/bts389
+
+Over-representation analysis (ORA) techniques, assessing the statistical overrepresentation of a user-defined, pre-selected gene/protein list of interest in a reference list of known gene/protein sets using a statistical test, e.g. the one-sided Fisher's exact test or the hypergeometric distribution.
+
+Gene set enrichment analysis (GSEA) methods, which in contrast to classical annotation enrichment analyses incorporate expression level measurements from an unfiltered dataset, including non-parametric approaches such as GSEA (Subramanian et al., 2005), Catmap (Breslin et al., 2004), ErmineJ (Lee et al., 2005) and GeneTrail (Backes et al., 2007) and parametric approaches such as PAGE (Kim and Volsky, 2005), MEGO (Tu et al., 2005), FatiScan (Al-Shahrour et al., 2007) and GAGE (Luo et al., 2009).
+
+
+
+From doi:10.1371/journal.pone.0079217
+
+The earliest approach [2] used to identify a common thread through the observed gene expression changes by finding over-represented/enriched categories of molecules that shared a similar function is the Over-Representation Analysis (ORA). This method became popular once software tools were designed to mine existing gene annotation databases including Gene Ontology [4], biological pathways databases (e.g. KEGG [5], Reactome [6]) and other gene set collections (e.g. MSigDB [7]). Over-representation approaches rely on a basic contingency table analysis testing for the association between the Differential Expression (DE) status of a gene (DE or not) and its membership in a given gene category (e.g. the set of genes related to apoptosis). Typical distributions used to perform ORA include hypergeometric, chi-square (χ2), etc. and they are implemented in publically available tools such as Onto-Tools [8], [9], GOstat [10], GOstats [11], and DAVID [12], just to mention a few. The drawbacks of ORA approaches include the fact that they cannot be applied if no DE genes are found in a given study, for instance due to lack of statistical power, and that the analysis result depends on the threshold used to select the DE genes. Also, the common assumption behind the models used for ORA, such as independence between genes, is likely violated, potentially resulting in an inflated rate of false positive findings [13].
+
+
+
+A second generation of methods, called Functional Class Scoring (FCS) methods, alleviates the need to select significant genes as a first step and provide a unique result for a given dataset. Typically, these approaches derive a score from all genes that belong to a given gene set regardless of whether or not they are differentially expressed. Such methods include Gene Set Enrichment Analysis (GSEA) [7], GLOBALTEST [14], SIGPATHWAY [15] with two alternative null hypotheses (Q1 and Q2), Gene Set Analysis (GSA) [16], Generally Applicable Gene set Enrichment (GAGE) [17], Significance Analysis of Functional categories in gene Expression studies (SAFE) [18], Mean-Rank Gene Set Enrichment tests (MRGSE) [19], Pathway Analysis with Down-weighting of Overlapping Genes (PADOG) [20] that we have proposed previously, and Correlation Adjusted Mean Rank gene set test (CAMERA) [21].
