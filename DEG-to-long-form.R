@@ -23,16 +23,16 @@ upDown <- select(upDown, -contains("DEG.1"), -contains("ANY"))
 # melt them
 ################################################################################
 log2FC <- melt(log2FC, id.vars = c("Probe.ID", "TargetID", "ENTREZ_GENE_ID"), 
-   variable.name = "Condition", value.name = "Log2_fold_change")
+               variable.name = "Condition", value.name = "Log2_fold_change")
 
 rawFC <- melt(rawFC, id.vars = c("Probe.ID", "TargetID", "ENTREZ_GENE_ID"), 
-   variable.name = "Condition", value.name = "Symmetrical_raw_fold_change")
+              variable.name = "Condition", value.name = "Symmetrical_raw_fold_change")
 
 FDR <- melt(FDR, id.vars = c("Probe.ID", "TargetID", "ENTREZ_GENE_ID"), 
-   variable.name = "Condition", value.name = "FDR_adjusted_p_value")
+            variable.name = "Condition", value.name = "FDR_adjusted_p_value")
 
 upDown <- melt(upDown, id.vars = c("Probe.ID", "TargetID", "ENTREZ_GENE_ID"), 
-   variable.name = "Condition", value.name = "Direction")
+               variable.name = "Condition", value.name = "Direction")
 
 ################################################################################
 # rename them
@@ -41,33 +41,33 @@ upDown <- melt(upDown, id.vars = c("Probe.ID", "TargetID", "ENTREZ_GENE_ID"),
 # come first so that it will be matched and not reach the test for D1
 # can be verified by comparing levels(factor(df$Condition)) with rename(that)
 days <- function(data) {
-   ifelse(str_detect(data, "D14"), 14, 
-      ifelse(str_detect(data, "D4"), 4, 
-         ifelse(str_detect(data, "D7"), 7, 
-            ifelse(str_detect(data, "D1"), 1, 0
-            )
+  ifelse(str_detect(data, "D14"), 14, 
+         ifelse(str_detect(data, "D4"), 4, 
+                ifelse(str_detect(data, "D7"), 7, 
+                       ifelse(str_detect(data, "D1"), 1, 0
+                       )
+                )
          )
-      )
-   )
+  )
 }
 
 # same order comment
 concs <- function(data) {
-   ifelse(str_detect(data, "500"), 500, 50)
+  ifelse(str_detect(data, "500"), 500, 50)
 }
 
 log2FC <- mutate(log2FC, Day = days(Condition), 
-   Concentration = concs(Condition)) %>%
-   select (-(Condition))
+                 Concentration = concs(Condition)) %>%
+  select (-(Condition))
 rawFC <- mutate(rawFC, Day = days(Condition), 
-   Concentration = concs(Condition)) %>%
-   select (-(Condition))
+                Concentration = concs(Condition)) %>%
+  select (-(Condition))
 FDR <- mutate(FDR, Day = days(Condition), 
-   Concentration = concs(Condition)) %>%
-   select (-(Condition))
+              Concentration = concs(Condition)) %>%
+  select (-(Condition))
 upDown <- mutate(upDown, Day = days(Condition), 
-   Concentration = concs(Condition)) %>%
-   select (-(Condition))
+                 Concentration = concs(Condition)) %>%
+  select (-(Condition))
 
 ################################################################################
 # merge them
