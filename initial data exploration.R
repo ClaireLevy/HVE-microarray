@@ -270,8 +270,30 @@ overlapDAVIDnot150upshort<-overlapDAVIDnot150up %>%
 
 overlapDAVIDnot150upshort<-castFunction(overlapDAVIDnot150upshort)
 
-write.csv(overlapDAVIDnot150upshort,
-          file = "overlap.DAVID.not1.50.UP.csv")
+# function that takes a data frame with the following columns, in order, 
+# "Category", "Term", "4", "7", "14" 
+# and returns the rows where p-values are < 0.05 on all three days
+allSig <- function(data) {
+   # check data for validity
+   if (any(colnames(data) != c("Category", "Term", "4", "7", "14"))) {
+      cols <- paste(colnames(data), collapse = ", ")
+      stop(paste("allSig expects the column names of data to be: ", 
+         "'Category, Term, 4, 7, 14', but the column names of data are '",
+         cols, "' so this might be a mistake.", sep = ""))
+   }
+      
+   # rename columns because dplyr gets mad at columns named numbers
+   colnames(data) <- c("Category", "Term", "d4", "d7", "d14")
+   
+   # remove rows where one or more p-value is > 0.05
+   data %>%
+      filter(d4 < 0.05, d7 < 0.05, d14 < 0.05)   
+}
+
+allSigNot150Up <- allSig(overlapDAVIDnot150upshort)
+
+write.csv(allSigNot150Up,
+          file = "overlap.DAVID.not1.50.UP.csv", row.names = FALSE)
 
 #pvalues for those overlapping terms, more low ones for d7
 ggplot(data=overlap.DAVID.not1.50.UP, aes())+
@@ -328,8 +350,11 @@ overlapDAVIDnot150DOWNshort<-overlapDAVIDnot150DOWN %>%
 
 overlapDAVIDnot150DOWNshort<-castFunction(overlapDAVIDnot150DOWNshort)
 
-write.csv(overlapDAVIDnot150DOWNshort,
-          file = "overlap.DAVID.not1.50.DOWN.csv")
+allSigNot150Down <- allSig(overlapDAVIDnot150DOWNshort)
+
+
+write.csv(allSigNot150Down,
+          file = "overlap.DAVID.not1.50.DOWN.csv", row.names = FALSE)
 
 
 ############DAVID data for dose = 500 UP #############
@@ -343,7 +368,7 @@ DAVIDdata500<-lapply(DAVIDlist500,read.csv)
 
 #give the list elements names
 
-names(DAVIDdata50)<- str_replace(DAVIDlist500, pattern = ".csv", replacement = "")
+names(DAVIDdata500)<- str_replace(DAVIDlist500, pattern = ".csv", replacement = "")
 
 
 # add columns to the dfs for day and direction
@@ -390,8 +415,10 @@ overlapDAVIDnot1500upshort<-overlapDAVIDnot1500up %>%
 
 overlapDAVIDnot1500upshort<-castFunction(overlapDAVIDnot1500upshort)
 
-write.csv(overlapDAVIDnot1500upshort,
-          file = "overlap.DAVID.not1.500.UP.csv")
+allSigNot1500Up <- allSig(overlapDAVIDnot1500upshort)
+
+write.csv(allSigNot1500Up,
+          file = "overlap.DAVID.not1.500.UP.csv", row.names = FALSE)
 
 
 ###############DAVID data for dose = 500 DOWN ###########
