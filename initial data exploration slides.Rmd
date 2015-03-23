@@ -2,12 +2,13 @@
 title: "Preliminary exploration"
 author: "Claire Levy"
 date: "Monday, March 09, 2015"
-output: beamer_presentation
+output:
+beamer_presentation:
+slide_level:2
 ---
 
-
-
 ```{r, echo=FALSE, message=FALSE}
+
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
 require(dplyr)
 require(reshape2)
@@ -15,9 +16,8 @@ require(stringr)
 require(ggplot2)
 require(pander)
 dataSummary<-read.csv("ex_vivo_HVE_Tenofovir_Summary_results.csv")
-head(dataSummary)
 
-#spread sheet is laid out with the 4 columns: log2 fold change,
+#spread sheet is laid out with the 4 columns: log2 fold change
 #raw fold change, FDR, Differentially expressed gene (DEG)
 #These 4 columns are repeated for the 4 time points and for the
 #two doses of tenofovir (500 and 50)
@@ -34,7 +34,7 @@ head(dataSummary)
 
 
 summaryOnly<-dataSummary[,c(1:3,36:43)]
-head(summaryOnly)
+
 names(summaryOnly)[4:11]<-c("d14.50","d7.50","d4.50","d1.50",
                             "d14.500","d7.500","d4.500","d1.500")
 
@@ -66,13 +66,13 @@ upDownCount<-melted%>%
 ### Extract data for each day for dose = 50 for upregulated genes.
 
 ### Run those data through DAVID and find GO terms upregulated genes that were common to all days at dose = 50.
-
+----
 
 ```{r, echo=FALSE, message=FALSE}
 require(pander)
 pander(upDownCount)
 ```
-
+----
 
 ```{r, echo=FALSE}
 #now melt that df to prepare it for easy plotting
@@ -84,9 +84,7 @@ meltedupDownCount<-melt(upDownCount, id.vars="day.dose",
 nGenes<-length(summaryOnly$Probe.ID)
 
 ```
-
-
-
+----
 ```{r, echo=FALSE}
 ##plot of up down and false counts
 ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
@@ -95,6 +93,7 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
   ggtitle("Number of upregulated, downregulated and non-significant genes\n\ per time point and dose\n\ 
           (line represents total genes analyzed for diff exp)")
 ```
+----
 ##Sean and I wrote some functions to arrange the data, extract days and doses of interest in formats that DAVID and InnateDB can use, and then read in the saved data from DAVID.
 
 ```{r, echo=FALSE}
@@ -186,7 +185,7 @@ overlapTerms.50.UPShort<-overlapTerms.50.UP%>%
   filter(n()==3)%>%
   arrange(Day,Term,PValue)
 ```
-
+----
 ##DAVID terms that overlap in days 1,7,14 for upregulated genes, dose = 50.
 
 ```{r, echo=F}
@@ -196,7 +195,7 @@ pander(overlapTerms.50.UPShort)
 #there there 3 occurances (1 per day we looked at)
 
 ```
-
+---
 ##Plots of pvalues, fold enrichment and gene count for the same data set as above.
 
 ```{r, echo=FALSE}
@@ -213,7 +212,8 @@ ggplot(data=overlapTerms.50.UPShort, aes())+
   ggtitle("GSEA P-values for overlapping GO terms \n\ in Up-regulated genes,dose=50")
   
 ```
-
+---
+##Fold enrichment
 ```{r, echo=FALSE}
 #Fold enrichment
 ggplot(data=overlapTerms.50.UPShort, aes())+
@@ -223,7 +223,8 @@ ggplot(data=overlapTerms.50.UPShort, aes())+
                             "Nuclear body","Nuclear speck"))+
   ggtitle("Fold Enrichment for overlapping GO terms \n\ in Up-regulated genes,dose=50")
 ```
-
+---
+#Gene Count
 ```{r,echo=FALSE}
 #Count of genes relating to the term
 
