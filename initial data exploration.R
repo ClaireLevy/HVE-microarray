@@ -211,7 +211,6 @@ DAVIDdata50<-Map(cbind,DAVIDdata50,direction=directionList)
 
 allDAVID50<-dplyr::rbind_all(DAVIDdata50)
 
-
 overlapDAVID50up<-allDAVID50%>%
   filter(direction=="UP")%>%
   group_by(Term)%>%
@@ -226,8 +225,7 @@ overlapDAVID50up<-allDAVID50%>%
 
 
 overlapDAVID50upshort<-overlapDAVID50up%>%
-  select(Day, Category, Term, Benjamini)%>%
-
+  select(Day, Category, Term, Benjamini)
 
 
 #a function to cast the data into an easy to read format
@@ -270,12 +268,32 @@ overlapDAVIDnot150up<-allDAVID50 %>%
 overlapDAVIDnot150upshort<-overlapDAVIDnot150up %>%
          select(Day,Category,Term,Benjamini)
 
-
-
 overlapDAVIDnot150upshort<-castFunction(overlapDAVIDnot150upshort)
 
-write.csv(overlapDAVIDnot150upshort,
-          file = "overlap.DAVID.not1.50.UP.csv")
+# function that takes a data frame with the following columns, in order, 
+# "Category", "Term", "4", "7", "14" 
+# and returns the rows where p-values are < 0.05 on all three days
+allSig <- function(data) {
+   # check data for validity
+   if (any(colnames(data) != c("Category", "Term", "4", "7", "14"))) {
+      cols <- paste(colnames(data), collapse = ", ")
+      stop(paste("allSig expects the column names of data to be: ", 
+         "'Category, Term, 4, 7, 14', but the column names of data are '",
+         cols, "' so this might be a mistake.", sep = ""))
+   }
+      
+   # rename columns because dplyr gets mad at columns named numbers
+   colnames(data) <- c("Category", "Term", "d4", "d7", "d14")
+   
+   # remove rows where one or more p-value is > 0.05
+   data %>%
+      filter(d4 < 0.05, d7 < 0.05, d14 < 0.05)   
+}
+
+allSigNot150Up <- allSig(overlapDAVIDnot150upshort)
+
+write.csv(allSigNot150Up,
+          file = "overlap.DAVID.not1.50.UP.csv", row.names = FALSE)
 
 #pvalues for those overlapping terms, more low ones for d7
 ggplot(data=overlap.DAVID.not1.50.UP, aes())+
@@ -332,8 +350,11 @@ overlapDAVIDnot150DOWNshort<-overlapDAVIDnot150DOWN %>%
 
 overlapDAVIDnot150DOWNshort<-castFunction(overlapDAVIDnot150DOWNshort)
 
-write.csv(overlapDAVIDnot150DOWNshort,
-          file = "overlap.DAVID.not1.50.DOWN.csv")
+allSigNot150Down <- allSig(overlapDAVIDnot150DOWNshort)
+
+
+write.csv(allSigNot150Down,
+          file = "overlap.DAVID.not1.50.DOWN.csv", row.names = FALSE)
 
 
 ############DAVID data for dose = 500 UP #############
@@ -391,10 +412,13 @@ overlapDAVIDnot1500up<-allDAVID500 %>%
 
 overlapDAVIDnot1500upshort<-overlapDAVIDnot1500up %>%
   select(Day,Category,Term,Benjamini)
+
 overlapDAVIDnot1500upshort<-castFunction(overlapDAVIDnot1500upshort)
 
-write.csv(overlapDAVIDnot1500upshort,
-          file = "overlap.DAVID.not1.500.UP.csv")
+allSigNot1500Up <- allSig(overlapDAVIDnot1500upshort)
+
+write.csv(allSigNot1500Up,
+          file = "overlap.DAVID.not1.500.UP.csv", row.names = FALSE)
 
 
 ###############DAVID data for dose = 500 DOWN ###########
@@ -422,20 +446,20 @@ extract("14","500","DOWN")
 #Innate.50.UP<-lapply(Innate.50.UPfiles,read.table, sep="\t")
 ########################################################
 
+getInnate<-function(day,concentration,direction){
+  read.table(file = paste("InnateDB",day,concentration,direction,"txt", sep="."),
+           sep = "\t",header=TRUE, quote="")
+}
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
-innateFiles50<-list.files("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50",
-                          pattern="^Innate")
 
-innateData50<-lapply(innateFiles,read.csv, sep="\t",quote="")
+Innate.1.50.UP<-getInnate("1","50","UP")
 
-names(innateData) <- stringr::str_replace(innateFiles50, pattern = ".csv", replacement = "")
+Innate.4.50.UP<-getInnate("4","50","UP")
 
-
-innateData50<-Map(cbind,innateData50,Day=dayList,direction=directionList)
-
-combinedInnate50<-dplyr::rbind_all(innateData50)
-
-
+Innate.7.50.UP<-getInnate("7","50","UP")
+ 
+Innate.14.50.UP<-getInnate("14","50","UP")
+                      
 
 ##function to separate out the GO ids in the DAVID data
 ##so they can be compared with innate data
@@ -445,29 +469,39 @@ getGO<-function(df){
                             substr(df$Term,1,10),NA))
 }
 
-
+#make a list of the david data frames
+DAVID.50.UPdfs<-list(DAVID.1.50.UP,DAVID.4.50.UP,DAVID.7.50.UP,
+              DAVID.14.50.UP)
 
 #apply the getGO function over them so they all have GO ids
-DAVIDdata50<-lapply(DAVIDdata50,getGO)
-
-combinedDAVID50<-rbind_all(DAVIDdata50)
-
-#which GO ids are in both innate and david data?
-
-InnateDAVIDoverlap<-merge(combinedDAVID50,combinedInnate50,
-         by=c("Day","direction","Pathway.Id"))
+DAVID.50.UPdfs<-lapply(DAVID.50.UPdfs,getGO)
 
 
-InnateDAVIDoverlap$Day<-factor(InnateDAVIDoverlap$Day, levels=c("1","4","7","14"))
 
-InnateDAVIDoverlap$direction<-factor(InnateDAVIDoverlap$direction,
-levels=c("UP","DOWN"))
+#which GO ids are in both innate and david data for day 1 dose = 50?
+
+#USe the InnateDAVID function to merge
+
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
+source("InnateDAVIDoverlap.R")
+
+
+#(Subset from the DAVID dfs list to refer to the one
+#you want)
+
+ID.1.50.UP<-InnateDAVID(DAVID.50.UPdfs[1],Innate.1.50.UP,50)
+
+ID.4.50.UP<-InnateDAVID(DAVID.50.UPdfs[2],Innate.4.50.UP,50)
+
+ID.7.50.UP<-InnateDAVID(DAVID.50.UPdfs[3],Innate.7.50.UP,50)
+
+ID.14.50.UP<-InnateDAVID(DAVID.50.UPdfs[4],Innate.14.50.UP,50)         
          
-InnateDAVIDoverlap<-InnateDAVIDoverlap%>%
-  select(Day, direction, Term,
-         Pathway.p.value..corrected.,Benjamini)
+#combine all of the merged (overlapping GO term) data          
+allID.50.UP<-rbind(ID.1.50.UP,ID.4.50.UP,
+                   ID.7.50.UP,ID.14.50.UP)
 
-names(InnateDAVIDoverlap)[4:5]<-c("InnateDB.p.value","DAVID.p.value")
+names(allID.50.UP)[3:4]<-c("InnateDB.p.value","DAVID.p.value")
 
 
 #calculate the abs value of the difference between p values
@@ -477,52 +511,29 @@ names(InnateDAVIDoverlap)[4:5]<-c("InnateDB.p.value","DAVID.p.value")
 #I THINK DAVID data is a correction of fisher's exact
 #Innate is a correction of Hypergeometric
   
+allID.50.UP<-allID.50.UP %>%
+  mutate(abs.difference = abs(InnateDB.p.value-DAVID.p.value))%>%
+  arrange(Day,abs.difference)
 
+allID.50.UP$Day<-factor(allID.50.UP$Day, levels=c("1","4","7","14"))
 
-#InnateDB and DAVID p values: all values
-overlapPlot1<-ggplot(InnateDAVIDoverlap,
-                     aes(x = Day, y = value,
-                         color = variable))+  
-  geom_point(aes(y=InnateDB.p.value,                 
-                 col="InnateDB.p.value"), 
+#InnateDB and DAVID p values
+ggplot(allID.50.UP, aes(x = Day, y = value, color = variable))+
+  geom_point(aes(y=InnateDB.p.value,
+                 col="InnateDB.p.value"),
              position=position_jitter(w=0.15),alpha=0.5)+
-  geom_point(aes(y=DAVID.p.value,
-                 col="DAVID.p.value"),
+  geom_point(aes(y=DAVID.p.value, col="DAVID.p.value"),
              position=position_jitter(w=0.15),alpha=0.5)+
   labs(y="Benjamini")+
   theme(legend.title=element_blank())+
-  facet_wrap(~direction)+
   ggtitle("Overlapping GO terms from InnateDB and DAVID ORA \n\
-          dose = 50")
-ggsave("overlapPlot1.png", width=8, height=4, dpi=400)
-
-
-#InnateDB and DAVID p values: only up to 0.05
-overlapPlot2<-ggplot(InnateDAVIDoverlap,
-                    aes(x = Day, y = value,
-                        color = variable))+  
-  geom_point(aes(y=InnateDB.p.value,                 
-                 col="InnateDB.p.value"), 
-             position=position_jitter(w=0.15),alpha=0.5)+
-  geom_point(aes(y=DAVID.p.value,
-                 col="DAVID.p.value"),
-             position=position_jitter(w=0.15),alpha=0.5)+
-  labs(y="Benjamini")+
-  scale_y_continuous(limits= c(0,0.05))+
-  theme(legend.title=element_blank())+
-  facet_wrap(~direction)+
-  ggtitle("Overlapping GO terms from InnateDB and DAVID ORA \n\
-dose = 50")
-
-ggsave("overlapPlot2.png", width=8, height=4, dpi=400)
-
+up-regulated genes, dose = 50")
 
 #InnateDB VS DAVID pvalues, limited 0-0.05
-ggplot(InnateDAVIDoverlap, aes(x = DAVID.p.value, y = InnateDB.p.value))+
-  geom_point(aes(),alpha=0.3)+
+ggplot(allID.50.UP, aes(x = DAVID.p.value, y = InnateDB.p.value))+
+  geom_point(aes())+
   scale_x_continuous(limits=c(0,0.05))+
-  scale_y_continuous(limits= c(0,0.05))+
-  facet_wrap(~direction)
+  scale_y_continuous(limits= c(0,0.05))
 
 
 write.csv(allID.50.UP,"allID.50.UP.csv")
