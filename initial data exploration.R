@@ -225,7 +225,8 @@ overlapDAVID50up<-allDAVID50%>%
 
 
 overlapDAVID50upshort<-overlapDAVID50up%>%
-  select(Day, Category, Term, Benjamini)
+  select(Day, Category, Term, Benjamini)%>%
+  filter(Benjamini<0.05)
 
 
 #a function to cast the data into an easy to read format
@@ -234,9 +235,15 @@ castFunction<-function(df){
         value.var = "Benjamini")
 }
 overlapDAVID50upshort<-castFunction(overlapDAVID50upshort)
+#get rid of NAs
+overlapDAVID50upshort<-na.omit(overlapDAVID50upshort)
 
+#note that all the day 1 values have dropped out becasue
+#they were all >0.05 but the terms still reflect overlaps 
+#in all 4 days.
 
-write.csv(overlapDAVID50upshort, "overlap.DAVID.50.UP.csv")
+write.csv(overlapDAVID50upshort,
+          "overlap.DAVID.50.UP.csv", row.names=FALSE)
 
 
 ###plot plot plot
@@ -328,13 +335,23 @@ ggplot(data=overlapDAVID50DOWN, aes())+
 
 
 
-overlapDAVID50DOWN<-castFunction(select(overlapDAVID50DOWN,
-                                  Day,Category,Term,Benjamini))
+overlapDAVID50DOWNshort<-overlapDAVID50DOWN%>%
+  select(Day, Category, Term, Benjamini)%>%
+  filter(Benjamini<0.05)
+  
+  
+#note that all the day 1 values have dropped out becasue
+#they were all >0.05 but the terms still reflect overlaps 
+#in all 4 days.
+
+overlapDAVID50DOWNshort<-na.omit(castFunction(overlapDAVID50DOWNshort))
+
+
+write.csv(overlapDAVID50DOWNshort,
+          file = "overlap.DAVID.50.DOWN.csv", row.names=FALSE)
 
 
 
-write.csv(overlapDAVID50DOWN,
-          file = "overlap.DAVID.50.DOWN.csv")
 ##############DAVID data for dose = 50 DOWN not incl day 1##############
 overlapDAVIDnot150DOWN<-allDAVID50 %>%
   filter(direction=="DOWN", Day!="1")%>%
@@ -388,16 +405,18 @@ overlapDAVID500up<-allDAVID500%>%
   ungroup()
 
 
-
 overlapDAVID500upshort<-overlapDAVID500up%>%
-  select(Day, Category, Term, Benjamini)
+  select(Day, Category, Term, Benjamini)%>%
+  filter(Benjamini<0.05)
 
 
 #use castFunction
 overlapDAVID500upshort<-castFunction(overlapDAVID500upshort)
 
+overlapDAVID500upshort<-na.omit(overlapDAVID500upshort)
 
-write.csv(overlapDAVID500upshort, "overlap.DAVID.500.UP.csv")
+write.csv(overlapDAVID500upshort,
+          "overlap.DAVID.500.UP.csv",row.names=FALSE)
 
 
 ###############DAVID data for dose = 500 UP excluding day 1##############
