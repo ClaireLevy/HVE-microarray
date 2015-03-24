@@ -13,7 +13,7 @@ getAllDavid <- function(concentration) {
    data<-lapply(Dlist,read.csv)
    
    #give the list elements names
-   names(data)<- str_replace(Dlist, pattern = ".csv", replacement = "")
+   names(data)<- stringr::str_replace(Dlist, pattern = ".csv", replacement = "")
    
    #check the order by looking at names(Ddata)
    #make a list for day and direction 
