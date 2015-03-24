@@ -40,48 +40,43 @@ ggsave(filename = paste0(path, "day1.pdf"),
    height = 11, width = 8.5, units = "in")
 
 ############################################################################
-# all genes affected on any day
+# all genes affected on any day sorted sequentially
 ############################################################################
 
-## heatmaps
-d <- collapseProbes(longForm)
+## gene level
+x <- collapseProbes(longForm)
 
-# remove TargetIDs where probes don't agree
-d <- filter(d, Direction %in% c("DOWN", "UP", "FALSE"))
+# omit genes where probes didn't agree
+d <- filter(x, Direction %in% c("UP", "DOWN", "FALSE")) %>%
+   ungroup()
 
-heatmapBy <- function(toPlot, d, conc) {
-   toPlot %>%
-      filter_(~Day == d, ~Concentration == conc) %>%
-      arrange(Direction) %>%
-      select(TargetID) -> z
-   z <- z[["TargetID"]]   
-   
-   toPlot %>%
-      mutate(TargetID = factor(TargetID, levels = as.character(z))) -> toPlot
-   
-   p <- ggplot(toPlot, aes(x = factor(Day), y = TargetID))
-   p + geom_tile(aes(fill = Direction)) + facet_wrap( ~ Concentration) +
-      scale_fill_brewer(type = "div", palette = 5) +
-      scale_y_discrete(labels = "") +
-      ggtitle(paste("Sorted by day", d, conc, "μM")) +
-      xlab("Day") + ylab("Gene")
-         
-}
+# put genes in order
+genesInOrder <- d %>%
+   filter(Concentration == 50) %>%
+   # add leading 0 to days < 10 for better ordering (01, 04, 14 not 1, 14, 4)
+   mutate(Day = stringr::str_pad(Day, 2, pad = "0")) %>%
+   # collapse to one row per target by targetID
+   group_by(TargetID) %>%
+   summarize(n = sum(Direction != "FALSE"),
+      up = sum(Direction == "UP"),
+      down = sum(Direction == "DOWN"),
+      which = paste(Day[Direction != "FALSE"], collapse = "."), 
+      Direction = ifelse(up > 0 & down > 0, "BOTH", 
+         ifelse(up > 0, "UP", 
+            ifelse(down > 0, "DOWN", "FALSE")))) %>%
+   # put in order of the new variables
+   arrange(Direction, n, which) %>%
+   # extract TargetID column as vector
+   .$TargetID
 
-for (conc in c(50, 500)) {
-   for (day in c(1, 4, 7, 14)) {
-      heatmapBy(d, day, conc)
-      ggsave(filename = paste0(path, day, ".", conc, ".pdf"),
-         height = 11, width = 8.5, units = "in")
-   }
-}
+# arrange data according to genesInOrder
+toPlot <- d %>%
+   mutate(TargetID = factor(TargetID, levels = as.character(genesInOrder)))
 
-
-heatmapBy(d, 1, 50)
-heatmapBy(d, 4, 50)
-heatmapBy(d, 7, 50)
-heatmapBy(d, 14, 50)
-heatmapBy(d, 1, 500)
-heatmapBy(d, 4, 500)
-heatmapBy(d, 7, 500)
-heatmapBy(d, 14, 500)
+# plot
+p <- ggplot(toPlot, aes(x = factor(Day), y = TargetID))
+p + geom_tile(aes(fill = Direction)) + facet_wrap( ~ Concentration) +
+   scale_fill_brewer(type = "div", palette = 5) + 
+   scale_y_discrete(labels = "") +
+   ggtitle("Genes affected by tenofovir in HVE cells") +
+   xlab("Day") + ylab("Gene")
