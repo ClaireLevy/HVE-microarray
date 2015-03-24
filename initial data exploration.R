@@ -448,7 +448,7 @@ extract("14","500","DOWN")
 
 ########################Innate DB data#######################
 
-
+#########dose = 50###############################
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
 
@@ -473,8 +473,6 @@ getGO<-function(df){
          Pathway.Id= ifelse(str_detect(df$Term,"GO:")==TRUE,
                             substr(df$Term,1,10),NA))
 }
-
-
 
 #apply the getGO function over them so they all have GO ids
 Ddata50<-lapply(Ddata50,getGO)
@@ -540,6 +538,56 @@ ggplot(ID50UP, aes(x = DAVID.p.value, y = InnateDB.p.value))+
   geom_point(aes(),alpha=0.4, size=4)+
   scale_x_continuous(lim=c(0,0.0001))+
   scale_y_continuous(lim=c(0,0.0001))
+
+
+
+#How many terms in each day contain "mitotic"or "mitosis"?
+
+dayList2<-c("4","7","14")
+
+x<-function(Day){
+  y<-ID50UP[ID50UP$Day==Day,]
+sum(str_count(y$Term,"mitotic")|str_count(y$Term,"mitosis"))
+}
+z<-lapply(dayList2,x)
+
+#there are 13 unique terms containing mitosis or mitotic
+
+a<-unique(ID50UP$Term[str_detect(ID50UP$Term,
+                              "mito(s|t)i(s|c)")==TRUE])
+
+
+##################data for dose= 50 DOWN
+overlapInnate50not1DOWN<-combinedInnate50 %>%
+  filter(direction=="DOWN", Day!="1")%>%
+  group_by(Pathway.Id)%>%
+  filter(n()==3)%>%
+  ungroup()
+
+#separating go terms out from the pre-existing david data
+overlapDnot150DOWN<-getGO(overlapDnot150DOWN)
+
+#merge the data sets
+ID50DOWN<-merge(overlapInnate50not1DOWN,overlapDnot150DOWN,
+              by=c("Day","Pathway.Id"))
+
+
+
+#select only <0.05 p vals
+ID50DOWN<-ID50DOWN%>%
+  select(Day,Pathway.Id,Term,Pathway.p.value..corrected.,
+         Benjamini)%>%
+  filter(Benjamini<0.05 & Pathway.p.value..corrected.<0.05)
+
+names(ID50DOWN)[4:5]= c("InnateDB.p.value","DAVID.p.value")
+
+ID50DOWN$Day<-factor(ID50DOWN$Day, levels = c("4","7","14"))
+
+unique(ID50DOWN$Term)
+
+#see DOI: 10.1111/hiv.12100 on gingival tissue tenofovir
+
+################ Innate data for dose = 500 UP
 
 
 
