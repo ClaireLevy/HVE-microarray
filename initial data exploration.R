@@ -448,7 +448,7 @@ extract("14","500","DOWN")
 
 ########################Innate DB data#######################
 
-#########dose = 50###############################
+#########Innate data dose = 50###############################
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
 
@@ -483,7 +483,7 @@ combinedD50<-rbind_all(Ddata50)
 # if the datasets are already filtered for days 
 #4,7,14 overlaps?
 
-#merging the innate overlap not1 and david overlap not1 data
+################DAVID + Innate data (not1) for dose= 50 DOWN
 
 #GO IDs that occur on days 4,7,14 in innate50UP data
 overlapInnate50not1UP<-combinedInnate50 %>%
@@ -545,19 +545,21 @@ ggplot(ID50UP, aes(x = DAVID.p.value, y = InnateDB.p.value))+
 
 dayList2<-c("4","7","14")
 
-x<-function(Day){
-  y<-ID50UP[ID50UP$Day==Day,]
-sum(str_count(y$Term,"mitotic")|str_count(y$Term,"mitosis"))
+a<-function(Day){
+  b<-ID50UP[ID50UP$Day==Day,]
+sum(str_count(b$Term,"mitotic")|str_count(b$Term,"mitosis"))
 }
-z<-lapply(dayList2,x)
+c<-lapply(dayList2,FUN=a)
 
 #there are 13 unique terms containing mitosis or mitotic
 
-a<-unique(ID50UP$Term[str_detect(ID50UP$Term,
+d<-unique(ID50UP$Term[str_detect(ID50UP$Term,
                               "mito(s|t)i(s|c)")==TRUE])
 
 
-##################data for dose= 50 DOWN
+length(unique(ID50UP$Term))
+
+################DAVID + Innate data (not1) for dose= 50 DOWN
 overlapInnate50not1DOWN<-combinedInnate50 %>%
   filter(direction=="DOWN", Day!="1")%>%
   group_by(Pathway.Id)%>%
@@ -583,17 +585,60 @@ names(ID50DOWN)[4:5]= c("InnateDB.p.value","DAVID.p.value")
 
 ID50DOWN$Day<-factor(ID50DOWN$Day, levels = c("4","7","14"))
 
-unique(ID50DOWN$Term)
+length(unique(ID50DOWN$Term))
 
 #see DOI: 10.1111/hiv.12100 on gingival tissue tenofovir
 
-################ Innate data for dose = 500 UP
+
+length(unique(ID50DOWN$Term[str_detect(ID50DOWN$Term,
+                              "mito(s|t)i(s|c)")==TRUE]))
+
+################ Innate data for dose = 500
+
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500")
+
+innateFiles500<-list.files("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500",
+                          pattern="^Innate")
+
+innateData500<-lapply(innateFiles500,read.csv, sep="\t",quote="")
+
+names(innateData500) <- stringr::str_replace(innateFiles500, pattern = ".csv", replacement = "")
+
+
+innateData500<-Map(cbind,innateData500,Day=dayList,direction=directionList)
+
+combinedInnate500<-rbind_all(innateData500)
+
+################DAVID + Innate data (not1) for dose= 500 UP
+overlapInnate500not1UP<-combinedInnate500 %>%
+  filter(direction=="UP", Day!="1")%>%
+  group_by(Pathway.Id)%>%
+  filter(n()==3)%>%
+  ungroup()
+
+#separating go terms out from the pre-existing david data
+overlapDnot1500up<-getGO(overlapDnot1500up)
+
+#merge the data sets
+ID500UP<-merge(overlapInnate500not1UP,overlapDnot1500up,
+                by=c("Day","Pathway.Id"))
 
 
 
+#select only <0.05 p vals
+ID500UP<-ID500UP%>%
+  select(Day,Pathway.Id,Term,Pathway.p.value..corrected.,
+         Benjamini)%>%
+  filter(Benjamini<0.05 & Pathway.p.value..corrected.<0.05)
 
+names(ID500UP)[4:5]= c("InnateDB.p.value","DAVID.p.value")
 
+ID500UP$Day<-factor(ID500UP$Day, levels = c("4","7","14"))
 
+length(unique(ID500UP$Term))
+
+length(unique(ID500UP$Term[str_detect(ID500UP$Term,
+                                       "mito(s|t)i(s|c)")==TRUE]))
 ############ biomaRt#############################
 #Goal: get GO ids and terms from bioMaRt from list of entrez ids
 
