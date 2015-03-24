@@ -152,29 +152,8 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
 #"map the IDs that DAVID could convert" option
 ############################################################
 
-#using the function to make data in longform...
-source("DEG-to-long-form.R")
-
-#a function to extract and write data from specific days and concentrations
-#the table is for innateDB.
-#the csv is for david where you just put in the IDs
-#For innateDB upload: first col is entrez, second is log2foldchange, 3rd is adj pval)
-
-
-extract<-function(day,concentration,direction){
-x<-longForm[longForm$Day == day &
-              
-              longForm$Concentration == concentration &
-              
-              longForm$Direction == direction,
-            c(3,6,8)]
-
-write.table(x,file=paste(day,concentration,direction,"txt",sep="."),
-         sep="\t",row.names=FALSE,col.names=FALSE)
-
-write.csv(x[,1],file=paste(day,concentration,direction,"csv",sep="."),
-          row.names=FALSE)
-}
+# To write .txt and .csv files for input into DAVID/InnateDB, use 
+# write-files-for-DAVID-and-InnateDB.R
 
 ###############DAVID data for dose = 50 UP ######################################
 #NOTE: on DAVID site I used the illumina HT 12 v3 background 
@@ -304,13 +283,6 @@ write.csv(allSigNot150Up,
 
 
 ###############DAVID data for dose = 50 DOWN ############
-#extracting data from the long form summary
-extract("1","50","DOWN")
-extract("4","50","DOWN")
-extract("7","50","DOWN")
-extract("14","50","DOWN")
-
-
 overlapD50DOWN<-allD50 %>%
   filter(direction=="DOWN")%>%
   group_by(Term)%>%
@@ -434,15 +406,8 @@ write.csv(allSigNot1500Up,
 
 ###############DAVID data for dose = 500 DOWN ###########
 ##################DAVID DATA NEEDS TO BE CORRECTED##########
-extract("1","500","DOWN")
-extract("4","500","DOWN")
-extract("7","500","DOWN")
-extract("14","500","DOWN")
-
 
 #####excluding day 1##############
-
-
 
 
 
