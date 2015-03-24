@@ -668,6 +668,3 @@ goids<-getBM(attributes=c("entrezgene","go_id","name_1006"),
 
 # Remove genes with no Entrez
 
-entrezIds<-mget()
-
-#This has the potential to minimize all the txt and csv files..
