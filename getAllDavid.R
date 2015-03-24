@@ -27,3 +27,20 @@ getAllDavid <- function(concentration) {
    #make the list of dfs into one df
    dplyr::rbind_all(data)
 }
+
+# Meaning of columns:
+#
+# http://www.baderlab.org/Software/EnrichmentMap/UserManual
+# Category (DAVID category, i.e. Interpro, sp_pir_keywords, ...)
+# Term - Gene set name
+# Count - number of genes associated with this gene set, i.e. DEG in this gene set
+# Percentage (gene associated with this gene set/total number of query genes)
+# P-value - modified Fisher Exact P-value
+# Genes - the list of genes from your query set that are annotated to this gene set.
+# List Total - number of genes in your query list mapped to any gene set in this ontology
+# Pop Hits - number of genes annotated to this gene set on the background list
+# Pop Total - number of genes on the background list mapped to any gene set in this ontology.
+# Fold enrichment
+# Bonferroni
+# Benjamini
+# FDR
