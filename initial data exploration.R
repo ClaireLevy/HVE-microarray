@@ -160,35 +160,8 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
 # and  in the functional annotation chart,under options
 #checked "Fisher exact", then reran with options and saved.
 
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray")
-
-#extract the david data from the folder where I saved it
-
-#make a list of the files I want
-Dlist50<-list.files("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50",
-                        pattern = "^DAVID")
-
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
-
-#apply read.csv over the list
-Ddata50<-lapply(Dlist50,read.csv)
-
-#give the list elements names
-
-names(Ddata50)<- str_replace(Dlist50, pattern = ".csv", replacement = "")
-
-#check the order by looking at names(Ddata)
-#make a list for day and direction 
-dayList<-list(1,1,14,14,4,4,7,7)
-directionList<-list("DOWN","UP")
-
-# add columns to the dfs for day and direction
-Ddata50<-Map(cbind,Ddata50,Day=dayList)
-Ddata50<-Map(cbind,Ddata50,direction=directionList)
-
-#make the list of dfs into one df
-
-allD50<-dplyr::rbind_all(Ddata50)
+# read in the files from DAVID for concentration == 50
+allD50 <- getAllDavid(50)
 
 overlapD50up<-allD50%>%
   filter(direction=="UP")%>%
@@ -242,6 +215,9 @@ ggsave("plot150UP.png", width=4, height=4, dpi=100)
 
 
 #########DAVID data for dose = 50 UP not incl day 1###########\
+# read in the files from DAVID for concentration == 50
+allD50 <- getAllDavid(50)
+
 overlapDnot150up<-allD50 %>%
   filter(direction=="UP", Day!="1")%>%
   group_by(Term)%>%
@@ -283,6 +259,9 @@ write.csv(allSigNot150Up,
 
 
 ###############DAVID data for dose = 50 DOWN ############
+# read in the files from DAVID for concentration == 50
+allD50 <- getAllDavid(50)
+
 overlapD50DOWN<-allD50 %>%
   filter(direction=="DOWN")%>%
   group_by(Term)%>%
@@ -317,6 +296,9 @@ write.csv(overlapD50DOWNshort,
 
 
 ##############DAVID data for dose = 50 DOWN not incl day 1##############
+# read in the files from DAVID for concentration == 50
+allD50 <- getAllDavid(50)
+
 overlapDnot150DOWN<-allD50 %>%
   filter(direction=="DOWN", Day!="1")%>%
   group_by(Term)%>%
@@ -339,27 +321,8 @@ write.csv(allSigNot150Down,
 
 
 ############D data for dose = 500 UP #############
-Dlist500<-list.files("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500",
-                        pattern = "^DAVID")
-
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500")
-
-#apply read.csv over the list
-Ddata500<-lapply(Dlist500,read.csv)
-
-#give the list elements names
-
-names(Ddata50)<- str_replace(Dlist500, pattern = ".csv", replacement = "")
-
-
-# add columns to the dfs for day and direction
-#using dayList and directionList from above
-Ddata500<-Map(cbind,Ddata500,Day=dayList)
-Ddata500<-Map(cbind,Ddata500,direction=directionList)
-
-#make the list of dfs into one df
-
-allD500<-dplyr::rbind_all(Ddata500)
+# read in the files from DAVID for concentration == 500
+allD500 <- getAllDavid(500)
 
 overlapD500up<-allD500%>%
   filter(direction=="UP")%>%
@@ -384,6 +347,9 @@ write.csv(overlapD500upshort,
 
 
 ###############DAVID data for dose = 500 UP excluding day 1##############
+# read in the files from DAVID for concentration == 500
+allD500 <- getAllDavid(500)
+
 overlapDnot1500up<-allD500 %>%
   filter(direction=="UP", Day!="1")%>%
   group_by(Term)%>%
@@ -406,6 +372,10 @@ write.csv(allSigNot1500Up,
 
 ###############DAVID data for dose = 500 DOWN ###########
 ##################DAVID DATA NEEDS TO BE CORRECTED##########
+
+# read in the files from DAVID for concentration == 500
+allD500 <- getAllDavid(500)
+
 
 #####excluding day 1##############
 
