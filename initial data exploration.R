@@ -5,6 +5,7 @@ require(stringr)
 require(ggplot2)
 require(pander)
 source("getAllDavid.R")
+source("getAllInnateDB.R")
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
 
@@ -385,20 +386,8 @@ allD500 <- getAllDavid(500)
 ########################Innate DB data#######################
 
 #########Innate data dose = 50###############################
-
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50")
-
-innateFiles50<-list.files("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 50",
-                          pattern="^Innate")
-
-innateData50<-lapply(innateFiles50,read.csv, sep="\t",quote="")
-
-names(innateData50) <- stringr::str_replace(innateFiles50, pattern = ".csv", replacement = "")
-
-
-innateData50<-Map(cbind,innateData50,Day=dayList,direction=directionList)
-
-combinedInnate50<-rbind_all(innateData50)
+# read in InnateDB data
+combinedInnate50<-getAllInnateDB(50)
 
 
 
@@ -439,9 +428,9 @@ ID50UP<-merge(overlapInnate50not1UP,overlapDnot150up,
 
 #select only <0.05 p vals
 ID50UP<-ID50UP%>%
-  select(Day,Pathway.Id,Term,Pathway.p.value..corrected.,
+  select(Day,Pathway.Id,Term,Pathway.p.value.corrected,
          Benjamini)%>%
-  filter(Benjamini<0.05 & Pathway.p.value..corrected.<0.05)
+  filter(Benjamini<0.05 & Pathway.p.value.corrected<0.05)
 
 names(ID50UP)[4:5]= c("InnateDB.p.value","DAVID.p.value")
 
@@ -513,9 +502,9 @@ ID50DOWN<-merge(overlapInnate50not1DOWN,overlapDnot150DOWN,
 
 #select only <0.05 p vals
 ID50DOWN<-ID50DOWN%>%
-  select(Day,Pathway.Id,Term,Pathway.p.value..corrected.,
+  select(Day,Pathway.Id,Term,Pathway.p.value.corrected,
          Benjamini)%>%
-  filter(Benjamini<0.05 & Pathway.p.value..corrected.<0.05)
+  filter(Benjamini<0.05 & Pathway.p.value.corrected<0.05)
 
 names(ID50DOWN)[4:5]= c("InnateDB.p.value","DAVID.p.value")
 
@@ -530,20 +519,7 @@ length(unique(ID50DOWN$Term[str_detect(ID50DOWN$Term,
                               "mito(s|t)i(s|c)")==TRUE]))
 
 ################ Innate data for dose = 500
-
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500")
-
-innateFiles500<-list.files("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = 500",
-                          pattern="^Innate")
-
-innateData500<-lapply(innateFiles500,read.csv, sep="\t",quote="")
-
-names(innateData500) <- stringr::str_replace(innateFiles500, pattern = ".csv", replacement = "")
-
-
-innateData500<-Map(cbind,innateData500,Day=dayList,direction=directionList)
-
-combinedInnate500<-rbind_all(innateData500)
+combinedInnate500 <- getAllInnateDB(500)
 
 ################DAVID + Innate data (not1) for dose= 500 UP
 overlapInnate500not1UP<-combinedInnate500 %>%
@@ -563,9 +539,9 @@ ID500UP<-merge(overlapInnate500not1UP,overlapDnot1500up,
 
 #select only <0.05 p vals
 ID500UP<-ID500UP%>%
-  select(Day,Pathway.Id,Term,Pathway.p.value..corrected.,
+  select(Day,Pathway.Id,Term,Pathway.p.value.corrected,
          Benjamini)%>%
-  filter(Benjamini<0.05 & Pathway.p.value..corrected.<0.05)
+  filter(Benjamini<0.05 & Pathway.p.value.corrected<0.05)
 
 names(ID500UP)[4:5]= c("InnateDB.p.value","DAVID.p.value")
 
