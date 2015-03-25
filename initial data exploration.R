@@ -602,5 +602,4 @@ goids<-getBM(attributes=c("entrezgene","go_id","name_1006"),
             filters = "entrezgene",values=UPentrez,
             mart = ensembl)
 
-# Remove genes with no Entrez
 
