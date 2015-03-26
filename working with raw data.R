@@ -71,3 +71,58 @@ NormBox<-boxplot(RAWlumi.N.Q)
 
 plotSampleRelation(RAWlumi.N.Q, method="mds")
 
+###############################################################################
+# explore sample relations
+###############################################################################
+
+# colors 
+red <- "#E41A1C"
+blue <- "#377EB8"
+green <- "#4DAF4A"
+purple <- "#984EA3"
+
+# get key to experiment IDs
+key <- read.csv("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData/SampleKey.csv",
+   header = T)
+key$MicroarrayId <- paste("HVE_", key$MicroarrayId, sep = "")
+
+# sort the "key" data frame according to the order that the samples are in in 
+# the lumi file for convenience when providing the color arguments
+sortKey <- function() {
+   key[match(sampleNames(RAWlumi.N.Q), key$MicroarrayId), ]
+}
+
+# convenience plot function
+p <- function(title) {
+   lumi::plotSampleRelation(RAWlumi.N.Q, method="mds", color = sortKey()$Color, 
+      main = title)
+}
+
+# convenience plot function (limma)
+p2 <- function(title) {
+   limma::plotMDS(RAWlumi.N.Q, pch = 16, col = sortKey()$Color, 
+      main = title, top = 3000)
+   # limma bases the distance on "top" number of genes
+   # I chose 3000 because it's roughly how many were differentially expressed
+   
+   # for some reason it's the mirror image of the lumi plots
+}
+
+# by TFV concentration
+key$Color <- ifelse(key$Concentration == 0, red, 
+   ifelse(key$Concentration == 50, green, blue))
+p("Colors are messed up damn you lumi Blue = 500 uM tenofovir, green = 50, red = 0")
+p2("Blue = 500 uM tenofovir, green = 50, red = 0")
+
+# by cell line
+key$Color <- ifelse(key$CellLine == "HVE1", red, 
+   ifelse(key$CellLine == "HVE2", green, blue))
+p("Blue = HVE3, green = HVE2, red = HVE1")
+p2("Blue = HVE3, green = HVE2, red = HVE1")
+
+# by day
+key$Color <- ifelse(key$Day == 1, red, 
+   ifelse(key$Day == 4, green, 
+      ifelse(key$Day == 7, blue, purple)))
+p("Red = day 1, green = 4, blue = 7, purple = 14")
+p2("Red = day 1, green = 4, blue = 7, purple = 14")
