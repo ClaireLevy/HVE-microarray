@@ -188,6 +188,14 @@ castFunction<-function(df){
   dcast(df, Category + Term~Day,
         value.var = "Benjamini")
 }
+
+# a function to write the DAVID analyzed files
+writeDavidAnalyzed <- function(df, concentration, filename) {
+   file <- paste("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = ",
+      concentration, "/", filename, sep = "")
+   write.csv(df, file, row.names=FALSE)
+}
+
 overlapD50upshort<-castFunction(overlapD50upshort)
 #get rid of NAs
 overlapD50upshort<-na.omit(overlapD50upshort)
@@ -196,9 +204,7 @@ overlapD50upshort<-na.omit(overlapD50upshort)
 #they were all >0.05 but the terms still reflect overlaps 
 #in all 4 days.
 
-write.csv(overlapD50upshort,
-          "overlap.DAVID.50.UP.csv", row.names=FALSE)
-
+writeDavidAnalyzed(overlapD50upshort, 50, "overlap.DAVID.50.UP.csv")
 
 ###plot plot plot
 
@@ -255,9 +261,7 @@ allSig <- function(data) {
 }
 
 allSigNot150Up <- allSig(overlapDnot150upshort)
-######CHECKWD########################################
-write.csv(allSigNot150Up,
-          file = "overlap.DAVID.not1.50.UP.csv", row.names = FALSE)
+writeDavidAnalyzed(allSigNot150Up, 50, "overlap.DAVID.not1.50.UP.csv")
 
 
 ###############DAVID data for dose = 50 DOWN ############
@@ -292,8 +296,7 @@ overlapD50DOWNshort<-overlapD50DOWN%>%
 overlapD50DOWNshort<-na.omit(castFunction(overlapD50DOWNshort))
 
 
-write.csv(overlapD50DOWNshort,
-          file = "overlap.DAVID.50.DOWN.csv", row.names=FALSE)
+writeDavidAnalyzed(overlapD50DOWNshort, 50, "overlap.DAVID.50.DOWN.csv")
 
 
 
@@ -318,8 +321,7 @@ overlapDnot150DOWNshort<-castFunction(overlapDnot150DOWNshort)
 allSigNot150Down <- allSig(overlapDnot150DOWNshort)
 
 
-write.csv(allSigNot150Down,
-          file = "overlap.D.not1.50.DOWN.csv", row.names = FALSE)
+writeDavidAnalyzed(allSigNot150Down, 50, "overlap.DAVID.not1.50.DOWN.csv")
 
 
 ############D data for dose = 500 UP #############
@@ -344,8 +346,7 @@ overlapD500upshort<-castFunction(overlapD500upshort)
 
 overlapD500upshort<-na.omit(overlapD500upshort)
 
-write.csv(overlapD500upshort,
-          "overlap.DAVID.500.UP.csv",row.names=FALSE)
+writeDavidAnalyzed(overlapD500upshort, 500, "overlap.DAVID.500.UP.csv")
 
 
 ###############DAVID data for dose = 500 UP excluding day 1##############
@@ -368,8 +369,7 @@ overlapDnot1500upshort<-castFunction(overlapDnot1500upshort)
 
 allSigNot1500Up <- allSig(overlapDnot1500upshort)
 
-write.csv(allSigNot1500Up,
-          file = "overlap.D.not1.500.UP.csv", row.names = FALSE)
+writeDavidAnalyzed(allSigNot1500Up, 500, "overlap.DAVID.not1.500.UP.csv")
 
 
 ###############DAVID data for dose = 500 DOWN ###########
