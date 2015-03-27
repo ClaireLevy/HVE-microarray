@@ -6,6 +6,7 @@ require(ggplot2)
 require(pander)
 source("getAllDavid.R")
 source("getAllInnateDB.R")
+source("analyzeAndWriteDavid.R")
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
 
@@ -165,46 +166,7 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
 # read in the files from DAVID for concentration == 50
 allD50 <- getAllDavid(50)
 
-overlapD50up<-allD50%>%
-  filter(direction=="UP")%>%
-  group_by(Term)%>%
-  filter(n()==4)%>% # because there are 4 days
-  arrange(Day,Term,PValue)%>%
-  ungroup()
-
-
-#if you do summarize(n())where filter is  it shows you the term and 
-#how many occurances there were in overlapTerms.50.UP. We only want the terms where
-#there there 4 occurances (1 per day we looked at)
-
-
-overlapD50upshort<-overlapD50up%>%
-  select(Day, Category, Term, Benjamini)%>%
-  filter(Benjamini<0.05)
-
-
-#a function to cast the data into an easy to read format
-castFunction<-function(df){
-  dcast(df, Category + Term~Day,
-        value.var = "Benjamini")
-}
-
-# a function to write the DAVID analyzed files
-writeDavidAnalyzed <- function(df, concentration, filename) {
-   file <- paste("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = ",
-      concentration, "/", filename, sep = "")
-   write.csv(df, file, row.names=FALSE)
-}
-
-overlapD50upshort<-castFunction(overlapD50upshort)
-#get rid of NAs
-overlapD50upshort<-na.omit(overlapD50upshort)
-
-#note that all the day 1 values have dropped out becasue
-#they were all >0.05 but the terms still reflect overlaps 
-#in all 4 days.
-
-writeDavidAnalyzed(overlapD50upshort, 50, "overlap.DAVID.50.UP.csv")
+analyzeAndWriteDavidWithDay1(allD50, 50, "overlap.DAVID.50.UP.csv", "UP")
 
 ###plot plot plot
 
@@ -232,37 +194,7 @@ analyzeAndWriteDavid(allD50, 50, "overlap.DAVID.not1.50.UP.csv", "UP")
 # read in the files from DAVID for concentration == 50
 allD50 <- getAllDavid(50)
 
-overlapD50DOWN<-allD50 %>%
-  filter(direction=="DOWN")%>%
-  group_by(Term)%>%
-  filter(n()==4)%>% # because there are 4 days
-  arrange(Day,Term,PValue)%>%
-  ungroup()
-
-
-ggplot(data=overlapD50DOWN, aes())+
-  geom_point(aes(x = Day , y = Benjamini),
-             position=position_jitter(w=0.15),size=3)+
-  geom_hline(y=0.05)+
-  ggtitle("P-values for overlapping GO terms \n\ in DOWN-regulated genes,dose=50")
-
-
-
-overlapD50DOWNshort<-overlapD50DOWN%>%
-  select(Day, Category, Term, Benjamini)%>%
-  filter(Benjamini<0.05)
-  
-  
-#note that all the day 1 values have dropped out becasue
-#they were all >0.05 but the terms still reflect overlaps 
-#in all 4 days.
-
-overlapD50DOWNshort<-na.omit(castFunction(overlapD50DOWNshort))
-
-
-writeDavidAnalyzed(overlapD50DOWNshort, 50, "overlap.DAVID.50.DOWN.csv")
-
-
+analyzeAndWriteDavidWithDay1(allD50, 50, "overlap.DAVID.50.DOWN.csv", "DOWN")
 
 ##############DAVID data for dose = 50 DOWN not incl day 1##############
 # read in the files from DAVID for concentration == 50
@@ -274,26 +206,7 @@ analyzeAndWriteDavid(allD50, 50, "overlap.DAVID.not1.50.DOWN.csv", "DOWN")
 # read in the files from DAVID for concentration == 500
 allD500 <- getAllDavid(500)
 
-overlapD500up<-allD500%>%
-  filter(direction=="UP")%>%
-  group_by(Term)%>%
-  filter(n()==4)%>% # because there are 4 days
-  arrange(Day,Term,PValue)%>%
-  ungroup()
-
-
-overlapD500upshort<-overlapD500up%>%
-  select(Day, Category, Term, Benjamini)%>%
-  filter(Benjamini<0.05)
-
-
-#use castFunction
-overlapD500upshort<-castFunction(overlapD500upshort)
-
-overlapD500upshort<-na.omit(overlapD500upshort)
-
-writeDavidAnalyzed(overlapD500upshort, 500, "overlap.DAVID.500.UP.csv")
-
+analyzeAndWriteDavidWithDay1(allD500, 500, "overlap.DAVID.500.UP.csv", "UP", TRUE)
 
 ###############DAVID data for dose = 500 UP excluding day 1##############
 # read in the files from DAVID for concentration == 500
