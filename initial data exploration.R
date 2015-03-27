@@ -226,43 +226,7 @@ ggsave("plot150UP.png", width=4, height=4, dpi=100)
 # read in the files from DAVID for concentration == 50
 allD50 <- getAllDavid(50)
 
-overlapDnot150up<-allD50 %>%
-  filter(direction=="UP", Day!="1")%>%
-  group_by(Term)%>%
-  filter(n()==3)%>% # because there are 4 days
-  arrange(Day,Term,PValue)%>%
-  ungroup()
-
-
-
-overlapDnot150upshort<-overlapDnot150up %>%
-         select(Day,Category,Term,Benjamini)
-
-overlapDnot150upshort<-castFunction(overlapDnot150upshort)
-
-# function that takes a data frame with the following columns, in order, 
-# "Category", "Term", "4", "7", "14" 
-# and returns the rows where p-values are < 0.05 on all three days
-allSig <- function(data) {
-   # check data for validity
-   if (any(colnames(data) != c("Category", "Term", "4", "7", "14"))) {
-      cols <- paste(colnames(data), collapse = ", ")
-      stop(paste("allSig expects the column names of data to be: ", 
-         "'Category, Term, 4, 7, 14', but the column names of data are '",
-         cols, "' so this might be a mistake.", sep = ""))
-   }
-      
-   # rename columns because dplyr gets mad at columns named numbers
-   colnames(data) <- c("Category", "Term", "d4", "d7", "d14")
-   
-   # remove rows where one or more p-value is > 0.05
-   data %>%
-      filter(d4 < 0.05, d7 < 0.05, d14 < 0.05)   
-}
-
-allSigNot150Up <- allSig(overlapDnot150upshort)
-writeDavidAnalyzed(allSigNot150Up, 50, "overlap.DAVID.not1.50.UP.csv")
-
+analyzeAndWriteDavid(allD50, 50, "overlap.DAVID.not1.50.UP.csv", "UP")
 
 ###############DAVID data for dose = 50 DOWN ############
 # read in the files from DAVID for concentration == 50
@@ -304,25 +268,7 @@ writeDavidAnalyzed(overlapD50DOWNshort, 50, "overlap.DAVID.50.DOWN.csv")
 # read in the files from DAVID for concentration == 50
 allD50 <- getAllDavid(50)
 
-overlapDnot150DOWN<-allD50 %>%
-  filter(direction=="DOWN", Day!="1")%>%
-  group_by(Term)%>%
-  filter(n()==3)%>% # because there are 4 days
-  arrange(Day,Term,PValue)%>%
-  ungroup()
-
-
-
-overlapDnot150DOWNshort<-overlapDnot150DOWN %>%
-  select(Day,Category,Term,Benjamini)
-
-overlapDnot150DOWNshort<-castFunction(overlapDnot150DOWNshort)
-
-allSigNot150Down <- allSig(overlapDnot150DOWNshort)
-
-
-writeDavidAnalyzed(allSigNot150Down, 50, "overlap.DAVID.not1.50.DOWN.csv")
-
+analyzeAndWriteDavid(allD50, 50, "overlap.DAVID.not1.50.DOWN.csv", "DOWN")
 
 ############D data for dose = 500 UP #############
 # read in the files from DAVID for concentration == 500
@@ -353,23 +299,7 @@ writeDavidAnalyzed(overlapD500upshort, 500, "overlap.DAVID.500.UP.csv")
 # read in the files from DAVID for concentration == 500
 allD500 <- getAllDavid(500)
 
-overlapDnot1500up<-allD500 %>%
-  filter(direction=="UP", Day!="1")%>%
-  group_by(Term)%>%
-  filter(n()==3)%>% # because there are 4 days
-  arrange(Day,Term,PValue)%>%
-  ungroup()
-
-
-
-overlapDnot1500upshort<-overlapDnot1500up %>%
-  select(Day,Category,Term,Benjamini)
-
-overlapDnot1500upshort<-castFunction(overlapDnot1500upshort)
-
-allSigNot1500Up <- allSig(overlapDnot1500upshort)
-
-writeDavidAnalyzed(allSigNot1500Up, 500, "overlap.DAVID.not1.500.UP.csv")
+analyzeAndWriteDavid(allD500, 500, "overlap.DAVID.not1.500.UP.csv", "UP")
 
 
 ###############DAVID data for dose = 500 DOWN ###########
