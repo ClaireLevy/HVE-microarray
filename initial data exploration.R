@@ -7,6 +7,7 @@ require(pander)
 source("getAllDavid.R")
 source("getAllInnateDB.R")
 source("analyzeAndWriteDavid.R")
+source('subsetToOverlappingGoTerms.R')
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
 
@@ -260,7 +261,22 @@ overlapInnate50not1UP<-combinedInnate50 %>%
   filter(n()==3)%>%
   ungroup()
 
+# how many GO terms have p < 0.05 on all 3 days, counted by 2 methods
+overlapInnate50not1UP %>%
+   group_by(Pathway.Id) %>%
+   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0)) %>%
+   ungroup()  %>% 
+   summarize(allSig = sum(allSig))
+# says 27 
+z <- dcast(mutate(overlapInnate50not1UP, Day = paste0("d", Day)),  Pathway.Id~Day,
+   value.var = "Pathway.p.value.corrected")
+sum(z$d4 < 0.05 & z$d7 < 0.05 & z$d14 < 0.05)
+# says 27 again
+
+
 #separating go terms out from the pre-existing david data
+overlapDnot150up <- subsetToOverlappingGoTerms(getAllDavid(50), "UP", 
+   withDay1 = FALSE)
 overlapDnot150up<-getGO(overlapDnot150up)
 
 #merge the data sets
@@ -334,7 +350,17 @@ overlapInnate50not1DOWN<-combinedInnate50 %>%
   filter(n()==3)%>%
   ungroup()
 
+# how many go terms are common to all 3 days
+overlapInnate50not1DOWN %>%
+   group_by(Pathway.Id) %>%
+   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0)) %>%
+   ungroup()  %>% 
+   summarize(allSig = sum(allSig))
+# says 7
+
 #separating go terms out from the pre-existing david data
+overlapDnot150DOWN <- subsetToOverlappingGoTerms(getAllDavid(50), "DOWN", 
+   withDay1 = FALSE)
 overlapDnot150DOWN<-getGO(overlapDnot150DOWN)
 
 #merge the data sets
@@ -371,7 +397,23 @@ overlapInnate500not1UP<-combinedInnate500 %>%
   filter(n()==3)%>%
   ungroup()
 
+# how many go terms are common to all 3 days
+overlapInnate500not1UP %>%
+   group_by(Pathway.Id) %>%
+   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0)) %>%
+   ungroup()  %>% 
+   summarize(allSig = sum(allSig))
+# says 47
+
+overlapInnate500not1UP %>%
+   group_by(Pathway.Id) %>%
+   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0),
+      z = Pathway.Name[1]) %>%
+   filter(allSig == 1)
+
 #separating go terms out from the pre-existing david data
+overlapDnot1500up <- subsetToOverlappingGoTerms(getAllDavid(500), "UP", 
+   withDay1 = FALSE)
 overlapDnot1500up<-getGO(overlapDnot1500up)
 
 #merge the data sets
@@ -394,6 +436,33 @@ length(unique(ID500UP$Term))
 
 length(unique(ID500UP$Term[str_detect(ID500UP$Term,
                                        "mito(s|t)i(s|c)")==TRUE]))
+
+
+
+################DAVID + Innate data (not1) for dose= 500 down
+overlapInnate500not1DOWN<-combinedInnate500 %>%
+   filter(direction=="DOWN", Day!="1")%>%
+   group_by(Pathway.Id)%>%
+   filter(n()==3)%>%
+   ungroup()
+
+# how many go terms are common to all 3 days
+overlapInnate500not1DOWN %>%
+   group_by(Pathway.Id) %>%
+   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0)) %>%
+   ungroup()  %>% 
+   summarize(allSig = sum(allSig))
+# says 10
+
+overlapInnate500not1DOWN %>%
+   group_by(Pathway.Id) %>%
+   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0),
+      z = Pathway.Name[1]) %>%
+   filter(allSig == 1)
+   
+   
+
+
 ############ biomaRt#############################
 #Goal: get GO ids and terms from bioMaRt from list of entrez ids
 
