@@ -255,7 +255,7 @@ allSig <- function(data) {
 }
 
 allSigNot150Up <- allSig(overlapDnot150upshort)
-
+######CHECKWD########################################
 write.csv(allSigNot150Up,
           file = "overlap.DAVID.not1.50.UP.csv", row.names = FALSE)
 
