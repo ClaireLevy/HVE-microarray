@@ -1,6 +1,7 @@
 # p < 0.05 for days 4, 7, and 14
 # df should be allD50 or allD500
 analyzeAndWriteDavid <- function(df, concentration, filename, direction) {
+   source('subsetToOverlappingGoTerms.R')
    
    castFunction<-function(data){
       dcast(data, Category + Term~Day,
@@ -34,12 +35,7 @@ analyzeAndWriteDavid <- function(df, concentration, filename, direction) {
          filter(d4 < 0.05, d7 < 0.05, d14 < 0.05)   
    }
    
-   toWrite <- df[df$direction == direction & df$Day != 1, ]
-   toWrite<- toWrite %>%
-      group_by(Term)%>%
-      filter(n()==3)%>% # because there are 4 days
-      arrange(Day,Term,PValue)%>%
-      ungroup()
+   toWrite <- subsetToOverlappingGoTerms(df, direction, FALSE)
 
    toWrite<-toWrite %>%
       select(Day,Category,Term,Benjamini)

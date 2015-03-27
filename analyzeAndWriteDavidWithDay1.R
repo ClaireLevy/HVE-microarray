@@ -3,7 +3,7 @@
 # value < 0.05
 # df should be allD50 or allD500
 analyzeAndWriteDavidWithDay1 <- function(df, concentration, filename, direction, day1Sig = FALSE) {
-   
+   source('subsetToOverlappingGoTerms.R')
    castFunction<-function(data){
       dcast(data, Category + Term~Day,
          value.var = "Benjamini")
@@ -41,12 +41,7 @@ analyzeAndWriteDavidWithDay1 <- function(df, concentration, filename, direction,
       }
    }
    
-   toWrite <- df[df$direction == direction, ]
-   toWrite<- toWrite %>%
-      group_by(Term)%>%
-      filter(n()==4)%>% # because there are 4 days
-      arrange(Day,Term,PValue)%>%
-      ungroup()
+   toWrite <- subsetToOverlappingGoTerms(df, direction, TRUE)
    
    toWrite<-toWrite %>%
       select(Day,Category,Term,Benjamini)
