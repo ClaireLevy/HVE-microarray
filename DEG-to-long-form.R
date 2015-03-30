@@ -10,14 +10,14 @@ raw <- read.csv("J:\\MacLabUsers\\Claire\\Projects\\HVE-microarray\\differential
 # split into four
 ################################################################################
 
-log2FC <- select(raw, Probe.ID, TargetID, ENTREZ_GENE_ID, contains("log2"))
-rawFC <- select(raw, Probe.ID, TargetID, ENTREZ_GENE_ID, contains("Symmetrical"))
-FDR <- select(raw, Probe.ID, TargetID, ENTREZ_GENE_ID, contains("FDR"))
+log2FC <- dplyr::select(raw, Probe.ID, TargetID, ENTREZ_GENE_ID, contains("log2"))
+rawFC <- dplyr::select(raw, Probe.ID, TargetID, ENTREZ_GENE_ID, contains("Symmetrical"))
+FDR <- dplyr::select(raw, Probe.ID, TargetID, ENTREZ_GENE_ID, contains("FDR"))
 
 # some of the columns containing UP DOWN or FALSE are duplicated, e.g., 
 # identical(raw$D14.500vNT.DEG, raw$D14.500vNT.DEG.1)
-upDown <- select(raw, Probe.ID, TargetID, ENTREZ_GENE_ID, contains("DEG"))
-upDown <- select(upDown, -contains("DEG.1"), -contains("ANY"))
+upDown <- dplyr::select(raw, Probe.ID, TargetID, ENTREZ_GENE_ID, contains("DEG"))
+upDown <- dplyr::select(upDown, -contains("DEG.1"), -contains("ANY"))
 
 ################################################################################
 # melt them
@@ -58,16 +58,16 @@ concs <- function(data) {
 
 log2FC <- mutate(log2FC, Day = days(Condition), 
                  Concentration = concs(Condition)) %>%
-  select (-(Condition))
+  dplyr::select (-(Condition))
 rawFC <- mutate(rawFC, Day = days(Condition), 
                 Concentration = concs(Condition)) %>%
-  select (-(Condition))
+  dplyr::select (-(Condition))
 FDR <- mutate(FDR, Day = days(Condition), 
               Concentration = concs(Condition)) %>%
-  select (-(Condition))
+  dplyr::select (-(Condition))
 upDown <- mutate(upDown, Day = days(Condition), 
                  Concentration = concs(Condition)) %>%
-  select (-(Condition))
+  dplyr::select (-(Condition))
 
 ################################################################################
 # merge them
