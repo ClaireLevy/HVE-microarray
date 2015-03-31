@@ -6,7 +6,6 @@ require(ggplot2)
 require(pander)
 source("getAllDavid.R")
 source("getAllInnateDB.R")
-source("analyzeAndWriteDavid.R")
 source('subsetToOverlappingGoTerms.R')
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
