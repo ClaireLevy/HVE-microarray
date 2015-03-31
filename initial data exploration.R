@@ -76,89 +76,21 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
   geom_point(aes(color=Direction),size=4)+
   geom_line(aes(group=Direction))
 
-##I am going to try to use all the probes on the array 
-#as a background reference for annotation and functional
-#analysis stuff. So I will try to extract that info from
-# the raw data file that LMF sent
 
-#can't read in data using lumiR, says there is nothing for the
-#control data slot...
+#################DAVID/INNATE ORA INPUT #######################
 
-#this tells me that HumanHT12v4_121001 was the assay used
-#require(lumi)
-#x<-lumiR("FinalReport_exvivo_TNF_HVE.txt")
-#readLines("FinalReport_exvivo_TNF_HVE.txt", n=10)
-#But DAVID doesn't have that as one of their defaults
-#I will try to extract them.
+# To write .txt and .csv files for input into DAVID/InnateDB,
+#use write-files-for-DAVID-and-InnateDB.R
 
-# data<-readBeadSummaryData("FinalReport_exvivo_TNF_HVE.txt")
-# str(data)
-# #looks like featureData slot has columns for ProbeID, TargetID,
-# #and PROBE_ID. The last one is illumina (starts with ILMN_)so
-# #I am guessing that ProbeID is the same as Probe.ID in the summarydata
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# #If ProbeID = Probe.ID (from summary data), there should be some matches if I do
-# # %in%...
-# str(melted)#they are integers here but factor in the raw data
-# #so I'll change them
-# 
-# melted$Probe.ID<-factor(melted$Probe.ID)
-# 
-# #now check for matches
-# x<-sum(melted$Probe.ID %in% y)
-# length(melted$Probe.ID)
-# #ok looks like all Probe.IDs are in ProbeID
-# 
-# 
-# z<-featureNames(data)#this apparently gives the feature names
-# #for the chip, which I guess is what I want
-# y<-featureData(data)$ProbeID
-# #what is the difference here? 
-# identical(z,y) # I guess they are the same thing
-# 
-# str(z)
-# head(z)
-# tail(z)
-# 
-# str(y)
-# head(y)
-# tail(y)
-# #I don't know why but there are sample names at the end of these
-# #and only 47,323 probe Ids.
-# #checked 27Feb14, this is right, there should be 47323.
-# 
-# 
-# ## DAVID couldn't figure out the IDs so I'll
-# #convert entrez>symbol and use symbol from the raw data
-# #nevermind, DAVID won't let you use gene symbol for a background.
-# 
-# 
-# #so I'll try the illumina ids
-# 
-# str(featureData(data))
-# str(data)
-# allGenesIlmn<-(featureData(data)$PROBE_ID)
-# #remove blanks and NAs
-# allGenesIlmn<-allGenesIlmn[allGenesIlmn!=""]
-# allGenesIlmn<-na.omit(allGenesIlmn)
-# #write
-# 
-# write.csv(allGenesIlmn[1:47323],"allGenesIlmn.csv")
+# This code converts LMF's DEG spreadsheet into longform df
+# and converts that to .txt and .csv files to enter into
+# InnateDB and DAVID. 
+#WHAT TO PUT IN: nothing
+#WHAT YOU GET: longform df ( includes DEG's only)
+#.txt and .csv files in dose = 500 or 50 folders
 
-#DAVID didn't understand all of them so I chose the recommended
-#"map the IDs that DAVID could convert" option
-############################################################
+source("write-files-for-DAVID-and-InnateDB.R")
 
-# To write .txt and .csv files for input into DAVID/InnateDB, use 
-# write-files-for-DAVID-and-InnateDB.R
-
-###############DAVID data for dose = 50 UP ######################################
 #NOTE: on DAVID site I used the illumina HT 12 v3 background 
 # and  in the functional annotation chart,under options
 #checked "Fisher exact", then reran with options and saved.
@@ -178,65 +110,62 @@ plot150UP<-ggplot(data=overlapD50up, aes())+
 # This will save a 400x400 file at 100 ppi
 ggsave("plot150UP.png", width=4, height=4, dpi=100)
 
-#####excluding day 1##############
+###############GET DAVID RESULTS AS DF #####################
+#WHAT TO PUT IN: desired concentration (50 or 500)
+#WHAT YOU GET: df with all DAVID data for that concentration
 
-##function to separate out the GO ids in the DAVID data
-##so they can be compared with innate data
-getGO<-function(df){
-  mutate(df,
-         Pathway.Id= ifelse(str_detect(df$Term,"GO:")==TRUE,
-                            substr(df$Term,1,10),NA))
-}
+source("getAllDavid.R")
 
 
+###############GET INNATEDB RESULTS AS DF #####################
+#WHAT TO PUT IN: desired concentration (50 or 500)
+#WHAT YOU GET: df with all InnateDB data for that concentration
 
-########################Innate DB data#######################
+source("getAllInnateDB.R")
 
-#########Innate data dose = 50###############################
-# read in InnateDB data
-combinedInnate50<-getAllInnateDB(50) %>%
-   mutate(Term = paste(Pathway.Id, Pathway.Name, sep = "~"),
-      PValue = Pathway.p.value.corrected, 
-      Benjamini = PValue, Category = "GO_TERM")
-
-analyzeAndWriteDavid(combinedInnate50, 50, "overlap.Innate.not1.50.UP.csv", "UP")
+allInnate50<-getAllInnateDB(50)
 
 
+########## FIND GO TERMS THAT OVERLAP ON MULTIPLE DAYS######
+#FUNCTION: subsetToOverlappingGoTerms 
+#WHAT TO PUT IN: A df of innate or david data (use getAllX)
+#designation of T or F for incl day1
+
+#WHAT YOU GET: A df containing innate or david data
+#just for overlapping GO terms
+
+source("subsetToOverlappingGoTerms.R")
+
+################ ADD COLUMN FOR GO id in DAVID data ##########
+#FUNCTION: getGO
+#WHAT TO PUT IN: a df with a column called "Term" that has
+#the GO id and term in the form "GO:xxxxxx~Term
+#WHAT YOU GET: same df with a new column with just the GO id
 
 
+source("getGO.R")
 
 
-#which GO ids are in both innate and David
-# if the datasets are already filtered for days 
-#4,7,14 overlaps?
+################DAVID + Innate data (not1) for dose= 50 UP
+#DAVID overlaps
+overlapDnot150up <- subsetToOverlappingGoTerms(getAllDavid(50),
+                                               "UP", 
+                                               withDay1 = FALSE)
+overlapDnot150up<-getGO(overlapDnot150up)
 
-################DAVID + Innate data (not1) for dose= 50 DOWN
 
-#GO IDs that occur on days 4,7,14 in innate50UP data
-overlapInnate50not1UP<-combinedInnate50 %>%
+#Innate overlaps
+
+
+overlapInnate50not1UP<-allInnate50 %>%
   filter(direction=="UP", Day!="1")%>%
   group_by(Pathway.Id)%>%
   filter(n()==3)%>%
   ungroup()
 
-# how many GO terms have p < 0.05 on all 3 days, counted by 2 methods
-overlapInnate50not1UP %>%
-   group_by(Pathway.Id) %>%
-   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0)) %>%
-   ungroup()  %>% 
-   summarize(allSig = sum(allSig))
-# says 27 
-z <- dcast(mutate(overlapInnate50not1UP, Day = paste0("d", Day)),  Pathway.Id~Day,
-   value.var = "Pathway.p.value.corrected")
-sum(z$d4 < 0.05 & z$d7 < 0.05 & z$d14 < 0.05)
-# says 27 again
 
 
-#separating go terms out from the pre-existing david data
-overlapDnot150up <- subsetToOverlappingGoTerms(getAllDavid(50), "UP", 
-   withDay1 = FALSE)
-overlapDnot150up<-getGO(overlapDnot150up)
-
+################## MERGE DAVID + INNATE OVERLAPS #########################
 #merge the data sets
 ID50UP<-merge(overlapInnate50not1UP,overlapDnot150up,
          by=c("Day","Pathway.Id"))
@@ -302,19 +231,13 @@ d<-unique(ID50UP$Term[str_detect(ID50UP$Term,
 length(unique(ID50UP$Term))
 
 ################DAVID + Innate data (not1) for dose= 50 DOWN
-overlapInnate50not1DOWN<-combinedInnate50 %>%
+overlapInnate50not1DOWN<-allInnate50 %>%
   filter(direction=="DOWN", Day!="1")%>%
   group_by(Pathway.Id)%>%
   filter(n()==3)%>%
   ungroup()
 
-# how many go terms are common to all 3 days
-overlapInnate50not1DOWN %>%
-   group_by(Pathway.Id) %>%
-   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0)) %>%
-   ungroup()  %>% 
-   summarize(allSig = sum(allSig))
-# says 7
+
 
 #separating go terms out from the pre-existing david data
 overlapDnot150DOWN <- subsetToOverlappingGoTerms(getAllDavid(50), "DOWN", 
@@ -345,23 +268,19 @@ length(unique(ID50DOWN$Term))
 length(unique(ID50DOWN$Term[str_detect(ID50DOWN$Term,
                               "mito(s|t)i(s|c)")==TRUE]))
 
-################ Innate data for dose = 500
-combinedInnate500 <- getAllInnateDB(500)
 
 ################DAVID + Innate data (not1) for dose= 500 UP
-overlapInnate500not1UP<-combinedInnate500 %>%
+
+# Innate data for dose = 500
+allInnate500 <- getAllInnateDB(500)
+
+overlapInnate500not1UP<-allInnate500 %>%
   filter(direction=="UP", Day!="1")%>%
   group_by(Pathway.Id)%>%
   filter(n()==3)%>%
   ungroup()
 
-# how many go terms are common to all 3 days
-overlapInnate500not1UP %>%
-   group_by(Pathway.Id) %>%
-   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0)) %>%
-   ungroup()  %>% 
-   summarize(allSig = sum(allSig))
-# says 47
+
 
 overlapInnate500not1UP %>%
    group_by(Pathway.Id) %>%
@@ -404,13 +323,6 @@ overlapInnate500not1DOWN<-combinedInnate500 %>%
    filter(n()==3)%>%
    ungroup()
 
-# how many go terms are common to all 3 days
-overlapInnate500not1DOWN %>%
-   group_by(Pathway.Id) %>%
-   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0)) %>%
-   ungroup()  %>% 
-   summarize(allSig = sum(allSig))
-# says 10
 
 overlapInnate500not1DOWN %>%
    group_by(Pathway.Id) %>%
@@ -419,9 +331,6 @@ overlapInnate500not1DOWN %>%
    filter(allSig == 1)
    
    
-
-
-############ biomaRt#############################
 ######## Finding # of genes assoc with GO ids
 require(illuminaHumanv4.db)
 require(biomaRt)

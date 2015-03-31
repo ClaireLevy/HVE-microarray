@@ -22,6 +22,7 @@ getAllInnateDB <- function(concentration) {
    suppressWarnings(data <- dplyr::rbind_all(data))
    
    # rename monstrous columns
+   #rename Pathway.Name to Term so the same subsetToOverlapping function
    colnames(data)[colnames(data) == "Pathway.p.value..corrected."] <- 
       "Pathway.p.value.corrected"
    colnames(data)[colnames(data) == 
