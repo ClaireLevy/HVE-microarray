@@ -27,6 +27,10 @@ getAllDavid <- function(concentration) {
    #make the list of dfs into one df
    suppressWarnings(data <- dplyr::rbind_all(data))
    colnames(data)[colnames(data) == "X."] <- "Percentage"
+   
+   # add column called Adjusted P Value
+   data$AdjustedPValue <- data$Benjamini
+   
    data
 }
 

@@ -1,7 +1,7 @@
 # Reads in all of the files created by InnateDB for the desired concentration
 # and returns them as a data frame
 getAllInnateDB <- function(concentration) {
-
+   library(dplyr)
    folder <- "J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = "
    folder <- paste(folder, concentration, sep = "")
       
@@ -28,6 +28,11 @@ getAllInnateDB <- function(concentration) {
    colnames(data)[colnames(data) == 
          "Genes..Symbol.IDBG.ID.Ensembl.Entrez.Fold.Change.P.Value."] <- 
       "Genes.Symbol.IDBG.ID.Ensembl.Entrez.Fold.Change.P.Value"
+   
+   # create InnateDB columns that match DAVID columns
+   data <- data  %>% mutate(Term = paste(Pathway.Id, Pathway.Name, sep = "~"),
+      AdjustedPValue = Pathway.p.value.corrected, Category = "GO_TERM")
+   
    
    data
 }
