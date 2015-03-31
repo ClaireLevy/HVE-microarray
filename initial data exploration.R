@@ -226,6 +226,14 @@ allD500 <- getAllDavid(500)
 
 #####excluding day 1##############
 
+##function to separate out the GO ids in the DAVID data
+##so they can be compared with innate data
+getGO<-function(df){
+  mutate(df,
+         Pathway.Id= ifelse(str_detect(df$Term,"GO:")==TRUE,
+                            substr(df$Term,1,10),NA))
+}
+
 
 
 ########################Innate DB data#######################
@@ -236,18 +244,10 @@ combinedInnate50<-getAllInnateDB(50)
 
 
 
-##function to separate out the GO ids in the DAVID data
-##so they can be compared with innate data
-getGO<-function(df){
-  mutate(df,
-         Pathway.Id= ifelse(str_detect(df$Term,"GO:")==TRUE,
-                            substr(df$Term,1,10),NA))
-}
 
-#apply the getGO function over them so they all have GO ids
-Ddata50<-lapply(Ddata50,getGO)
 
-combinedD50<-rbind_all(Ddata50)
+
+
 
 #which GO ids are in both innate and David
 # if the datasets are already filtered for days 
@@ -465,30 +465,69 @@ overlapInnate500not1DOWN %>%
 
 
 ############ biomaRt#############################
-#Goal: get GO ids and terms from bioMaRt from list of entrez ids
-
+######## Finding # of genes assoc with GO ids
 require(illuminaHumanv4.db)
 require(biomaRt)
+require(GO.db)
+library(topGO)
+library(GOstats)
+library(annotate)
+library(genefilter)
 
-UP<-longForm%>%
-  filter(Direction == "UP", ENTREZ_GENE_ID)
-#make a vector of the ids to annotate
-UPentrez<-UP$ENTREZ_GENE_ID
+# I want to make a column in a df of overlap data with the
+#number of genes in each go id.
 
-#set the mart you want to use (see listMarts())
-#and choose the dataset to use see listDatasets()
+#First make a column for the go terms using getGO
+#NOTE: if there is no GO term, there will be an NA there
+allD50<-getGO(allD50)
 
-ensembl<-useMart("ensembl",dataset="hsapiens_gene_ensembl")
+#make a list of unique go Ids from allD50
+allD50GOlist<-as.list(unique(allD50$Pathway.Id))
 
-#attributes: the values you want
-#filters: the data biomaRt should look at and retrieve attributes for   
+#mapping of Go ids to entrez ids for my universe
+#Using topGO functions and methods
+GOID2Gene<-annFUN.org(c("CC","BP","MF"),
+                      feasibleGenes = NULL,
+                                  mapping="org.Hs.eg.db",
+                      ID = "entrez")
 
-#the attribute for go term name is "name_1066"
+#geneNames are the GO ids associated with entrez Ids
+#they are the names of the elemnts in the GOID2Gene list
+geneNames<-names(GOID2Gene)
+
+#filter the elements in the universe that overlap
+#with list of GO ids from allD50.
+geneList<-GOID2Gene[geneNames %in% allD50GOlist]
+
+#here is a named list where the names are GO ids from allD50
+#and the element is the number of associated genes
+GOidLength<-lapply(geneList,length)
+
+#convert the GOidLength list into a dataframe
+#used dplyr's as_data_frame so the GO ids aren't turned into
+#rownames
+GOidLength<-as_data_frame(GOidLength)
+
+#now it is wide and I want it to be long so I will melt
+GOidLength<-melt(GOidLength)
+
+#cleanup so it will merge well
+colnames(GOidLength)<-c("Pathway.Id","GenesInGOid")
+GOidLength$Pathway.Id<-as.character(GOidLength$Pathway.Id)
+GOidLength$GenesInGOid<-as.numeric(GOidLength$GenesInGOid)
+
+#merge it with the allD50 dataframe
+allD50<-merge(GOidLength,allD50, by = "Pathway.Id")
+
+### NOTE: This no longer contains data from non-GO databases
+### like SPIR and etc.
 
 
-#This is a list of the entrez ids and the associated go terms and IDs
-goids<-getBM(attributes=c("entrezgene","go_id","name_1006"),
-            filters = "entrezgene",values=UPentrez,
-            mart = ensembl)
+
+
+
+
+
+
 
 
