@@ -25,7 +25,7 @@ getAllDavid <- function(concentration) {
    data<-Map(cbind,data,direction=directionList)
    
    #make the list of dfs into one df
-   data <- dplyr::rbind_all(data)
+   suppressWarnings(data <- dplyr::rbind_all(data))
    colnames(data)[colnames(data) == "X."] <- "Percentage"
    data
 }

@@ -19,7 +19,7 @@ getAllInnateDB <- function(concentration) {
    
    data<-Map(cbind,data,Day=dayList,direction=directionList)
    
-   data <- dplyr::rbind_all(data)
+   suppressWarnings(data <- dplyr::rbind_all(data))
    
    # rename monstrous columns
    colnames(data)[colnames(data) == "Pathway.p.value..corrected."] <- 
