@@ -51,12 +51,3 @@ extract(7, 500, "UP")
 extract(7, 500, "DOWN")
 extract(14, 500, "UP")
 extract(14, 500, "DOWN")
-
-# alternative way of expressing the same thing
-for (day in c(1, 4, 7, 14)) {
-   for (concentration in c(50, 500)) {
-      for (direction in c("UP", "DOWN")) {
-         extract(day, concentration, direction)
-      }
-   }
-}
