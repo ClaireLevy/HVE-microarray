@@ -90,3 +90,41 @@ The earliest approach [2] used to identify a common thread through the observed 
 
 
 A second generation of methods, called Functional Class Scoring (FCS) methods, alleviates the need to select significant genes as a first step and provide a unique result for a given dataset. Typically, these approaches derive a score from all genes that belong to a given gene set regardless of whether or not they are differentially expressed. Such methods include Gene Set Enrichment Analysis (GSEA) [7], GLOBALTEST [14], SIGPATHWAY [15] with two alternative null hypotheses (Q1 and Q2), Gene Set Analysis (GSA) [16], Generally Applicable Gene set Enrichment (GAGE) [17], Significance Analysis of Functional categories in gene Expression studies (SAFE) [18], Mean-Rank Gene Set Enrichment tests (MRGSE) [19], Pathway Analysis with Down-weighting of Overlapping Genes (PADOG) [20] that we have proposed previously, and Correlation Adjusted Mean Rank gene set test (CAMERA) [21].
+==================================================================================================
+
+
+
+Getting genes in a GO Id
+
+
+
+library(biomaRt)
+ensembl = useMart("ensembl",dataset="hsapiens_gene_ensembl") 
+#uses human ensembl annotations
+#gets gene symbol, transcript_id and go_id for all genes annotated with GO:0007507
+
+gene.data <- getBM(attributes=c('hgnc_symbol', 'ensembl_transcript_id', 'go_id'),
+                   filters = 'go_id', values = 'GO:0007507', mart = ensembl)
+
+=========================================================================================
+Getting GO terms for a list of entrez ids
+
+
+#make a vector of the ids to annotate
+UPentrez<-UP$ENTREZ_GENE_ID
+
+#set the mart you want to use (see listMarts())
+#and choose the dataset to use see listDatasets()
+
+ensembl<-useMart("ensembl",dataset="hsapiens_gene_ensembl")
+
+#attributes: the values you want
+#filters: the data biomaRt should look at and retrieve attributes for   
+
+#the attribute for go term name is "name_1066"
+
+
+#This is a list of the entrez ids and the associated go terms and GOIDs
+goids<-getBM(attributes=c("entrezgene","go_id","name_1006"),
+            filters = "entrezgene",values=UPentrez,
+            mart = ensembl)
