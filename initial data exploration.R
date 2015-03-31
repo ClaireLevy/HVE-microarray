@@ -164,12 +164,6 @@ ggplot(meltedupDownCount,aes(x=day.dose,y=Count))+
 # and  in the functional annotation chart,under options
 #checked "Fisher exact", then reran with options and saved.
 
-# read in the files from DAVID for concentration == 50
-allD50 <- getAllDavid(50)
-
-#(df, concentration, filename, direction, day1Sig = FALSE)
-analyzeAndWriteDavidWithDay1(allD50, 50, "overlap.DAVID.50.UP.csv", "UP")
-
 ###plot plot plot
 
 #Pvalues plot
@@ -184,45 +178,6 @@ plot150UP<-ggplot(data=overlapD50up, aes())+
 
 # This will save a 400x400 file at 100 ppi
 ggsave("plot150UP.png", width=4, height=4, dpi=100)
-
-
-#########DAVID data for dose = 50 UP not incl day 1###########\
-# read in the files from DAVID for concentration == 50
-allD50 <- getAllDavid(50)
-
-analyzeAndWriteDavid(allD50, 50, "overlap.DAVID.not1.50.UP.csv", "UP")
-
-###############DAVID data for dose = 50 DOWN ############
-# read in the files from DAVID for concentration == 50
-allD50 <- getAllDavid(50)
-
-analyzeAndWriteDavidWithDay1(allD50, 50, "overlap.DAVID.50.DOWN.csv", "DOWN")
-
-##############DAVID data for dose = 50 DOWN not incl day 1##############
-# read in the files from DAVID for concentration == 50
-allD50 <- getAllDavid(50)
-
-analyzeAndWriteDavid(allD50, 50, "overlap.DAVID.not1.50.DOWN.csv", "DOWN")
-
-############D data for dose = 500 UP #############
-# read in the files from DAVID for concentration == 500
-allD500 <- getAllDavid(500)
-
-analyzeAndWriteDavidWithDay1(allD500, 500, "overlap.DAVID.500.UP.csv", "UP", TRUE)
-
-###############DAVID data for dose = 500 UP excluding day 1##############
-# read in the files from DAVID for concentration == 500
-allD500 <- getAllDavid(500)
-
-analyzeAndWriteDavid(allD500, 500, "overlap.DAVID.not1.500.UP.csv", "UP")
-
-
-###############DAVID data for dose = 500 DOWN ###########
-##################DAVID DATA NEEDS TO BE CORRECTED##########
-
-# read in the files from DAVID for concentration == 500
-allD500 <- getAllDavid(500)
-
 
 #####excluding day 1##############
 
@@ -240,9 +195,12 @@ getGO<-function(df){
 
 #########Innate data dose = 50###############################
 # read in InnateDB data
-combinedInnate50<-getAllInnateDB(50)
+combinedInnate50<-getAllInnateDB(50) %>%
+   mutate(Term = paste(Pathway.Id, Pathway.Name, sep = "~"),
+      PValue = Pathway.p.value.corrected, 
+      Benjamini = PValue, Category = "GO_TERM")
 
-
+analyzeAndWriteDavid(combinedInnate50, 50, "overlap.Innate.not1.50.UP.csv", "UP")
 
 
 
