@@ -1,12 +1,10 @@
-
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray")
 require(dplyr)
 require(reshape2)
 require(stringr)
 require(ggplot2)
 require(pander)
-source("getAllDavid.R")
-source("getAllInnateDB.R")
-source('subsetToOverlappingGoTerms.R')
+
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes")
 
@@ -96,7 +94,11 @@ ggsave("plot150UP.png", width=4, height=4, dpi=100)
 ###############################################################################
 # start of DAVID / InnateDB ORA 
 ###############################################################################
-
+source("getAllDavid.R")
+source("getAllInnateDB.R")
+source('subsetToOverlappingGoTerms.R')
+source("write-files-for-DAVID-and-InnateDB.R")
+source("analyzeAndWriteGO.R")
 #################DAVID/INNATE ORA OVERALL #####################
 # The overall overrepresentation analysis involves:
 # 1. Read in LMF's DEG spreadsheet
@@ -121,7 +123,6 @@ ggsave("plot150UP.png", width=4, height=4, dpi=100)
 #WHAT YOU GET: longform df (includes DEG's only)
 #.txt and .csv files in dose = 500 or 50 folders
 
-source("write-files-for-DAVID-and-InnateDB.R")
 
 #################DAVID/INNATE WEBSITE #######################
 
@@ -136,7 +137,7 @@ source("write-files-for-DAVID-and-InnateDB.R")
 #WHAT TO PUT IN: desired concentration (50 or 500)
 #WHAT YOU GET: df with all DAVID data for that concentration
 
-source("getAllDavid.R")
+
 allD50 <- getAllDavid(50)
 allD500 <- getAllDavid(500)
 
@@ -147,7 +148,7 @@ allD500 <- getAllDavid(500)
 #WHAT YOU GET: df with all InnateDB data for that concentration, with columns
 #              added to match DAVID template
 
-source("getAllInnateDB.R")
+
 allInnate50<-getAllInnateDB(50)
 allInnate500<-getAllInnateDB(500)
 
@@ -163,7 +164,7 @@ allInnate500<-getAllInnateDB(500)
 #WHAT YOU GET: a CSV file containing the terms that are enriched on days 4, 7, 
 #              and 14 and p < 0.05. The file has the given name and is in the 
 #              appropriate folder 
-source("analyzeAndWriteGO.R")
+
 analyzeAndWriteGO(allD50, 50, "overlap.DAVID.not1.50.DOWN.csv", "DOWN")
 analyzeAndWriteGO(allD50, 50, "overlap.DAVID.not1.50.UP.csv", "UP")
 # note that DAVID 500 DOWN is missing
@@ -216,16 +217,6 @@ source("subsetToOverlappingGoTerms.R")
 ###############################################################################
 
 
-################ ADD COLUMN FOR GO id in DAVID data ##########
-#FUNCTION: getGO
-#WHAT TO PUT IN: a df with a column called "Term" that has
-#the GO id and term in the form "GO:xxxxxx~Term
-#WHAT YOU GET: same df with a new column with just the GO id
-
-
-source("getGO.R")
-
-
 ################DAVID + Innate data (not1) for dose= 50 UP
 #DAVID overlaps
 overlapDnot150up <- subsetToOverlappingGoTerms(getAllDavid(50),
@@ -237,7 +228,7 @@ overlapDnot150up<-getGO(overlapDnot150up)
 #Innate overlaps
 
 
-overlapInnate50not1UP<-allInnate50 %>%
+overlapInnate50not1up<-allInnate50 %>%
   filter(direction=="UP", Day!="1")%>%
   group_by(Pathway.Id)%>%
   filter(n()==3)%>%
@@ -411,62 +402,7 @@ overlapInnate500not1DOWN %>%
    filter(allSig == 1)
    
    
-######## Finding # of genes assoc with GO ids
-require(illuminaHumanv4.db)
-require(biomaRt)
-require(GO.db)
-library(topGO)
-library(GOstats)
-library(annotate)
-library(genefilter)
 
-# I want to make a column in a df of overlap data with the
-#number of genes in each go id.
-
-#First make a column for the go terms using getGO
-#NOTE: if there is no GO term, there will be an NA there
-allD50<-getGO(allD50)
-
-#make a list of unique go Ids from allD50
-allD50GOlist<-as.list(unique(allD50$Pathway.Id))
-
-#mapping of Go ids to entrez ids for my universe
-#Using topGO functions and methods
-GOID2Gene<-annFUN.org(c("CC","BP","MF"),
-                      feasibleGenes = NULL,
-                                  mapping="org.Hs.eg.db",
-                      ID = "entrez")
-
-#geneNames are the GO ids associated with entrez Ids
-#they are the names of the elemnts in the GOID2Gene list
-geneNames<-names(GOID2Gene)
-
-#filter the elements in the universe that overlap
-#with list of GO ids from allD50.
-geneList<-GOID2Gene[geneNames %in% allD50GOlist]
-
-#here is a named list where the names are GO ids from allD50
-#and the element is the number of associated genes
-GOidLength<-lapply(geneList,length)
-
-#convert the GOidLength list into a dataframe
-#used dplyr's as_data_frame so the GO ids aren't turned into
-#rownames
-GOidLength<-as_data_frame(GOidLength)
-
-#now it is wide and I want it to be long so I will melt
-GOidLength<-melt(GOidLength)
-
-#cleanup so it will merge well
-colnames(GOidLength)<-c("Pathway.Id","GenesInGOid")
-GOidLength$Pathway.Id<-as.character(GOidLength$Pathway.Id)
-GOidLength$GenesInGOid<-as.numeric(GOidLength$GenesInGOid)
-
-#merge it with the allD50 dataframe
-allD50<-merge(GOidLength,allD50, by = "Pathway.Id")
-
-### NOTE: This no longer contains data from non-GO databases
-### like SPIR and etc.
 
 
 
