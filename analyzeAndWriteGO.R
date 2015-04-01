@@ -5,10 +5,10 @@ source("getAllInnateDB.R")
 
 
 
-
+day1Sig<-FALSE
 df<-allD50
 concentration<-50
-filename<-"bk.csv"
+filename<-"bk1.csv"
 direction<-"UP"
 
 analyzeAndWriteGO <- function(df, concentration,
@@ -183,11 +183,10 @@ analyzeAndWriteGOWithDay1 <- function(df, concentration,
    # rename columns because dplyr gets mad at columns named numbers
    colnames(toWrite2) <- c("Category", "Term","GenesInGOid","d1", "d4", "d7", "d14")
    
-   #Merge the two dfs by term
-   toWrite<-merge(toWrite1, toWrite2, by = "Term")
+  #Merge the two dfs by term
+  toWrite<-merge(toWrite1, toWrite2, by = "Term")
    
-   # rename columns because dplyr gets mad at columns named numbers
-   colnames(toWrite) <- c("Category", "Term", "d1", "d4", "d7", "d14")
+  
   
   
   
