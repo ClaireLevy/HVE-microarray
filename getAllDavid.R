@@ -31,7 +31,11 @@ getAllDavid <- function(concentration) {
    # add column called Adjusted P Value
    data$AdjustedPValue <- data$Benjamini
    
-   data
+   #add a column with just the go ids
+  data<-mutate(data,Pathway.Id=ifelse(str_detect(data$Term,"GO:")==TRUE,
+                             substr(data$Term,1,10),NA))
+   
+  data
 }
 
 # Meaning of columns:
