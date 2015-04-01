@@ -222,34 +222,29 @@ source("subsetToOverlappingGoTerms.R")
 overlapDnot150up <- subsetToOverlappingGoTerms(getAllDavid(50),
                                                "UP", 
                                                withDay1 = FALSE)
-overlapDnot150up<-getGO(overlapDnot150up)
-
-
 #Innate overlaps
 
+overlapInnatenot150up <- subsetToOverlappingGoTerms(getAllInnateDB(50),
+                                               "UP", 
+                                               withDay1 = FALSE)
 
-overlapInnate50not1up<-allInnate50 %>%
-  filter(direction=="UP", Day!="1")%>%
-  group_by(Pathway.Id)%>%
-  filter(n()==3)%>%
-  ungroup()
 
 
 
 ################## MERGE DAVID + INNATE OVERLAPS #########################
 #merge the data sets
-ID50UP<-merge(overlapInnate50not1UP,overlapDnot150up,
+ID50UP<-merge(overlapInnatenot150up,overlapDnot150up,
          by=c("Day","Pathway.Id"))
 
-
+ID
 
 #select only <0.05 p vals
 ID50UP<-ID50UP%>%
-  select(Day,Pathway.Id,Term,Pathway.p.value.corrected,
+  dplyr::select(Day,Pathway.Id,Pathway.p.value.corrected,
          Benjamini)%>%
-  filter(Benjamini<0.05 & Pathway.p.value.corrected<0.05)
+  dplyr::filter(Benjamini<0.05 & Pathway.p.value.corrected<0.05)
 
-names(ID50UP)[4:5]= c("InnateDB.p.value","DAVID.p.value")
+names(ID50UP)[c(9,15)]= c("InnateDB.p.value","DAVID.p.value")
 
 ID50UP$Day<-factor(ID50UP$Day, levels = c("4","7","14"))
 
@@ -313,7 +308,7 @@ overlapInnate50not1DOWN<-allInnate50 %>%
 #separating go terms out from the pre-existing david data
 overlapDnot150DOWN <- subsetToOverlappingGoTerms(getAllDavid(50), "DOWN", 
    withDay1 = FALSE)
-overlapDnot150DOWN<-getGO(overlapDnot150DOWN)
+
 
 #merge the data sets
 ID50DOWN<-merge(overlapInnate50not1DOWN,overlapDnot150DOWN,
