@@ -32,7 +32,8 @@ getAllInnateDB <- function(concentration) {
    colnames(data)[colnames(data) == 
          "Genes..Symbol.IDBG.ID.Ensembl.Entrez.Fold.Change.P.Value."] <- 
       "Genes.Symbol.IDBG.ID.Ensembl.Entrez.Fold.Change.P.Value"
-   
+  
+   colnames(data)[5:6]<-c("Count","Pop.Hits")
    # create InnateDB columns that match DAVID columns
    data <- data  %>% mutate(Term = paste(Pathway.Id, Pathway.Name, sep = "~"),
       PValue = Pathway.p.value, Category = "GO_TERM")
