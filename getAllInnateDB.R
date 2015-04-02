@@ -1,7 +1,12 @@
 # Reads in all of the files created by InnateDB for the desired concentration
 # and returns them as a data frame
+
+
+
+
 getAllInnateDB <- function(concentration) {
-   library(dplyr)
+  require(dplyr)
+  require(stringr)
    folder <- "J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = "
    folder <- paste(folder, concentration, sep = "")
       
@@ -17,21 +22,20 @@ getAllInnateDB <- function(concentration) {
    dayList<-list(1,1,14,14,4,4,7,7)
    directionList<-list("DOWN","UP")
    
-   data<-Map(cbind,data,Day=dayList,direction=directionList)
+   data<-Map(cbind,data,Day=dayList,Direction=directionList)
    
    suppressWarnings(data <- dplyr::rbind_all(data))
-   
+  
+   data<-dplyr::select(data,-Pathway.p.value..corrected.)
+  
    # rename monstrous columns
-   #rename Pathway.Name to Term so the same subsetToOverlapping function
-   colnames(data)[colnames(data) == "Pathway.p.value..corrected."] <- 
-      "Pathway.p.value.corrected"
    colnames(data)[colnames(data) == 
          "Genes..Symbol.IDBG.ID.Ensembl.Entrez.Fold.Change.P.Value."] <- 
       "Genes.Symbol.IDBG.ID.Ensembl.Entrez.Fold.Change.P.Value"
    
    # create InnateDB columns that match DAVID columns
    data <- data  %>% mutate(Term = paste(Pathway.Id, Pathway.Name, sep = "~"),
-      AdjustedPValue = Pathway.p.value.corrected, Category = "GO_TERM")
+      PValue = Pathway.p.value, Category = "GO_TERM")
    
    
    data
