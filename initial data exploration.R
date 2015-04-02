@@ -127,9 +127,7 @@ source("analyzeAndWriteGO.R")
 #################DAVID/INNATE WEBSITE #######################
 
 # Step 3
-#NOTE: on DAVID site I used the illumina HT 12 v3 background 
-# and  in the functional annotation chart,under options
-#checked "Fisher exact", then reran with options and saved.
+# See getAllDavid for details of website use
 
 ###############GET DAVID RESULTS AS DF #####################
 
