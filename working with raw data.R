@@ -126,3 +126,14 @@ key$Color <- ifelse(key$Day == 1, red,
       ifelse(key$Day == 7, blue, purple)))
 p("Red = day 1, green = 4, blue = 7, purple = 14")
 p2("Red = day 1, green = 4, blue = 7, purple = 14")
+
+###################Continuing with lumi script, identify DEGs ##############
+#Should I do the "inverse VST transform to the raw scale"??
+#It seems like it is more for data with low expression values...
+
+library(limma)
+dataMatrix<-exprs(RAWlumi.N.Q)
+head(dataMatrix)
+#remove unexpressed and and un-annotated genes
+
+

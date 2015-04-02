@@ -5,11 +5,7 @@ source("getAllInnateDB.R")
 
 
 
-day1Sig<-FALSE
-df<-allD50
-concentration<-50
-filename<-"bk1.csv"
-direction<-"UP"
+
 
 analyzeAndWriteGO <- function(df, concentration,
                               filename, direction) {
