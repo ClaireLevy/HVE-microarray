@@ -1,5 +1,10 @@
 # Reads in all of the files created by DAVID for the desired concentration
 # and returns them as a data frame
+
+
+concentration<-50
+require(dplyr)
+require(stringr)
 getAllDavid <- function(concentration) {
    folder <- "J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = "
    folder <- paste(folder, concentration, sep = "")
@@ -27,9 +32,6 @@ getAllDavid <- function(concentration) {
    #make the list of dfs into one df
    suppressWarnings(data <- dplyr::rbind_all(data))
    colnames(data)[colnames(data) == "X."] <- "Percentage"
-   
-   # add column called Adjusted P Value
-   data$AdjustedPValue <- data$Benjamini
    
    #add a column with just the go ids
   data<-mutate(data,Pathway.Id=ifelse(str_detect(data$Term,"GO:")==TRUE,

@@ -22,7 +22,7 @@ getAllInnateDB <- function(concentration) {
    dayList<-list(1,1,14,14,4,4,7,7)
    directionList<-list("DOWN","UP")
    
-   data<-Map(cbind,data,Day=dayList,Direction=directionList)
+   data<-Map(cbind,data,Day=dayList,direction=directionList)
    
    suppressWarnings(data <- dplyr::rbind_all(data))
   
