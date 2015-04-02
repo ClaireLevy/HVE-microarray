@@ -167,7 +167,7 @@ allInnate500<-getAllInnateDB(500)
 
 analyzeAndWriteGO(allD50, 50, "overlap.DAVID.not1.50.DOWN.csv", "DOWN")
 analyzeAndWriteGO(allD50, 50, "overlap.DAVID.not1.50.UP.csv", "UP")
-# note that DAVID 500 DOWN is missing
+analyzeAndWriteGO(allD500, 500, "overlap.DAVID.not1.500.DOWN.csv", "DOWN")
 analyzeAndWriteGO(allD500, 500, "overlap.DAVID.not1.500.UP.csv", "UP")
 
 analyzeAndWriteGO(allInnate50, 50, "overlap.Innate.not1.50.DOWN.csv", "DOWN")
@@ -188,7 +188,7 @@ analyzeAndWriteGO(allInnate500, 500, "overlap.Innate.not1.500.UP.csv", "UP")
 #              The file has the given name and is in the appropriate folder 
 analyzeAndWriteGOWithDay1(allD50, 50, "overlap.DAVID.50.DOWN.csv", "DOWN")
 analyzeAndWriteGOWithDay1(allD50, 50, "overlap.DAVID.50.UP.csv", "UP")
-# note that DAVID 500 DOWN is missing
+analyzeAndWriteGOWithDay1(allD500, 500, "overlap.DAVID.500.DOWN.csv", "DOWN", TRUE)
 analyzeAndWriteGOWithDay1(allD500, 500, "overlap.DAVID.500.UP.csv", "UP", TRUE)
 
 analyzeAndWriteGOWithDay1(allInnate50, 50, "overlap.Innate.50.DOWN.csv", "DOWN")
@@ -231,172 +231,8 @@ overlapInnatenot150up <- subsetToOverlappingGoTerms(getAllInnateDB(50),
 
 
 
-################## MERGE DAVID + INNATE OVERLAPS #########################
-#merge the data sets
-ID50UP<-merge(overlapInnatenot150up,overlapDnot150up,
-         by=c("Day","Pathway.Id"))
-
-ID
-
-#select only <0.05 p vals
-ID50UP<-ID50UP%>%
-  dplyr::select(Day,Pathway.Id,Pathway.p.value.corrected,
-         Benjamini)%>%
-  dplyr::filter(Benjamini<0.05 & Pathway.p.value.corrected<0.05)
-
-names(ID50UP)[c(9,15)]= c("InnateDB.p.value","DAVID.p.value")
-
-ID50UP$Day<-factor(ID50UP$Day, levels = c("4","7","14"))
 
 
-# PLOTS : InnateDB and DAVID p values
-ggplot(ID50UP,aes(x = Day, y = value,
-                         color = variable))+  
-  geom_point(aes(y=InnateDB.p.value,                 
-                 col="InnateDB.p.value"), 
-             position=position_jitter(w=0.15),size=3,alpha=0.5)+
-  geom_point(aes(y=DAVID.p.value,
-                 col="DAVID.p.value"),
-             position=position_jitter(w=0.15),size=3,alpha=0.5)+
-  labs(y="Benjamini")+
-  theme(legend.title=element_blank())+
-  ggtitle("Overlapping upreg GO terms from InnateDB and DAVID ORA \n\
-          dose = 50")
-
-
-
-#InnateDB VS DAVID pvalues, limited 0-0.05
-ggplot(ID50UP, aes(x = DAVID.p.value, y = InnateDB.p.value))+
-  geom_point(aes(),alpha=0.4, size=4)
-
-#zoom in
-
-ggplot(ID50UP, aes(x = DAVID.p.value, y = InnateDB.p.value))+
-  geom_point(aes(),alpha=0.4, size=4)+
-  scale_x_continuous(lim=c(0,0.0001))+
-  scale_y_continuous(lim=c(0,0.0001))
-
-
-
-#How many terms in each day contain "mitotic"or "mitosis"?
-
-dayList2<-c("4","7","14")
-
-a<-function(Day){
-  b<-ID50UP[ID50UP$Day==Day,]
-sum(str_count(b$Term,"mitotic")|str_count(b$Term,"mitosis"))
-}
-c<-lapply(dayList2,FUN=a)
-
-#there are 13 unique terms containing mitosis or mitotic
-
-d<-unique(ID50UP$Term[str_detect(ID50UP$Term,
-                              "mito(s|t)i(s|c)")==TRUE])
-
-
-length(unique(ID50UP$Term))
-
-################DAVID + Innate data (not1) for dose= 50 DOWN
-overlapInnate50not1DOWN<-allInnate50 %>%
-  filter(direction=="DOWN", Day!="1")%>%
-  group_by(Pathway.Id)%>%
-  filter(n()==3)%>%
-  ungroup()
-
-
-
-#separating go terms out from the pre-existing david data
-overlapDnot150DOWN <- subsetToOverlappingGoTerms(getAllDavid(50), "DOWN", 
-   withDay1 = FALSE)
-
-
-#merge the data sets
-ID50DOWN<-merge(overlapInnate50not1DOWN,overlapDnot150DOWN,
-              by=c("Day","Pathway.Id"))
-
-
-
-#select only <0.05 p vals
-ID50DOWN<-ID50DOWN%>%
-  select(Day,Pathway.Id,Term,Pathway.p.value.corrected,
-         Benjamini)%>%
-  filter(Benjamini<0.05 & Pathway.p.value.corrected<0.05)
-
-names(ID50DOWN)[4:5]= c("InnateDB.p.value","DAVID.p.value")
-
-ID50DOWN$Day<-factor(ID50DOWN$Day, levels = c("4","7","14"))
-
-length(unique(ID50DOWN$Term))
-
-#see DOI: 10.1111/hiv.12100 on gingival tissue tenofovir
-
-
-length(unique(ID50DOWN$Term[str_detect(ID50DOWN$Term,
-                              "mito(s|t)i(s|c)")==TRUE]))
-
-
-################DAVID + Innate data (not1) for dose= 500 UP
-
-# Innate data for dose = 500
-allInnate500 <- getAllInnateDB(500)
-
-overlapInnate500not1UP<-allInnate500 %>%
-  filter(direction=="UP", Day!="1")%>%
-  group_by(Pathway.Id)%>%
-  filter(n()==3)%>%
-  ungroup()
-
-
-
-overlapInnate500not1UP %>%
-   group_by(Pathway.Id) %>%
-   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0),
-      z = Pathway.Name[1]) %>%
-   filter(allSig == 1)
-
-#separating go terms out from the pre-existing david data
-overlapDnot1500up <- subsetToOverlappingGoTerms(getAllDavid(500), "UP", 
-   withDay1 = FALSE)
-overlapDnot1500up<-getGO(overlapDnot1500up)
-
-#merge the data sets
-ID500UP<-merge(overlapInnate500not1UP,overlapDnot1500up,
-                by=c("Day","Pathway.Id"))
-
-
-
-#select only <0.05 p vals
-ID500UP<-ID500UP%>%
-  select(Day,Pathway.Id,Term,Pathway.p.value.corrected,
-         Benjamini)%>%
-  filter(Benjamini<0.05 & Pathway.p.value.corrected<0.05)
-
-names(ID500UP)[4:5]= c("InnateDB.p.value","DAVID.p.value")
-
-ID500UP$Day<-factor(ID500UP$Day, levels = c("4","7","14"))
-
-length(unique(ID500UP$Term))
-
-length(unique(ID500UP$Term[str_detect(ID500UP$Term,
-                                       "mito(s|t)i(s|c)")==TRUE]))
-
-
-
-################DAVID + Innate data (not1) for dose= 500 down
-overlapInnate500not1DOWN<-combinedInnate500 %>%
-   filter(direction=="DOWN", Day!="1")%>%
-   group_by(Pathway.Id)%>%
-   filter(n()==3)%>%
-   ungroup()
-
-
-overlapInnate500not1DOWN %>%
-   group_by(Pathway.Id) %>%
-   summarize(allSig = ifelse(all(Pathway.p.value.corrected < 0.05), 1, 0),
-      z = Pathway.Name[1]) %>%
-   filter(allSig == 1)
-   
-   
 
 
 
