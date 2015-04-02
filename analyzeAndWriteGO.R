@@ -44,6 +44,8 @@ analyzeAndWriteGO <- function(df, concentration,
      dplyr::filter(d4.PValue < 0.05, d7.PValue < 0.05,
                    d14.PValue < 0.05) 
    
+   toWrite <- arrange(toWrite, d4.PValue, d7.PValue, d14.PValue)
+   
    file <- paste("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = ",
                  concentration, "/", filename, sep = "")
    write.csv(toWrite, file, row.names=FALSE)
@@ -99,6 +101,9 @@ analyzeAndWriteGOWithDay1 <- function(df, concentration,
    } else {
       # do nothing
    }
+
+   toWrite <- arrange(toWrite, d4.PValue, d7.PValue, d14.PValue)
+   
    file <- paste("J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = ",
       concentration, "/", filename, sep = "")
    write.csv(toWrite, file, row.names=FALSE)
