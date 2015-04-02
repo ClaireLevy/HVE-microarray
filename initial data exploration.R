@@ -186,6 +186,8 @@ analyzeAndWriteGO(allInnate500, 500, "overlap.Innate.not1.500.UP.csv", "UP")
 #WHAT YOU GET: a CSV file containing the terms that are enriched on days 1, 4, 7, 
 #              and 14 and p < 0.05 for 4, 7, 14, and optionally also for d1.
 #              The file has the given name and is in the appropriate folder 
+
+
 analyzeAndWriteGOWithDay1(allD50, 50, "overlap.DAVID.50.DOWN.csv", "DOWN")
 analyzeAndWriteGOWithDay1(allD50, 50, "overlap.DAVID.50.UP.csv", "UP")
 analyzeAndWriteGOWithDay1(allD500, 500, "overlap.DAVID.500.DOWN.csv", "DOWN", TRUE)
