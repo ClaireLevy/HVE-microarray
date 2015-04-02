@@ -4,9 +4,6 @@ source("getAllInnateDB.R")
 # df should be allD50 or allD500
 
 
-
-
-
 analyzeAndWriteGO <- function(df, concentration,
                               filename, direction) {
    source('subsetToOverlappingGoTerms.R')
@@ -24,11 +21,11 @@ analyzeAndWriteGO <- function(df, concentration,
   
   #cast the first df to get a column for each dayCount, a row for each
   #term and the gene count as data
-  toWrite1<-dcast(toWrite1,Category+Term ~Day,
+  toWrite1<-dcast(toWrite1,Category+Term+direction ~Day,
                   value.var="Count")
   
   # rename columns because dplyr gets mad at columns named numbers
-  colnames(toWrite1) <- c("Category","Term", 
+  colnames(toWrite1) <- c("Category","Term","direction" ,
                           "d4Count", "d7Count", "d14Count")
   
   #cast the second df to get a column for each day and rows for
@@ -73,11 +70,11 @@ analyzeAndWriteGOWithDay1 <- function(df, concentration,
   
   #cast the first df to get a column for each dayCount, a row for each
   #term and the gene count as data
-  toWrite1<-dcast(toWrite1,Category+Term ~Day,
+  toWrite1<-dcast(toWrite1,Category+Term+direction ~Day,
                   value.var="Count")
   
   # rename columns because dplyr gets mad at columns named numbers
-  colnames(toWrite1) <- c("Category","Term", "d1Count",
+  colnames(toWrite1) <- c("Category","Term", "direction","d1Count",
                           "d4Count", "d7Count", "d14Count")
   
   #cast the second df to get a column for each day and rows for
