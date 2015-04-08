@@ -134,21 +134,25 @@ p2("Red = day 1, green = 4, blue = 7, purple = 14")
 library(limma)
 dataMatrix<-exprs(RAWlumi.N.Q)
 head(dataMatrix)
+
 #remove unexpressed and and un-annotated genes
 #detectionCall "estimates the percentage of expressed genes
 #of each sample" but I don't know what that means.
 #I think this shows which probes have detection pvalues <0.01
 
+presentCount<-detectionCall(RAWlumi.N.Q,Th=0.05, type = "probe")
 
-presentCount<-detectionCall(RAWlumi.N.Q,Th=0.01, type = "probe")
-#then this takes only those that have >0 occurances of pval<0.01
+#then this takes only those that have >0 occurances of pval<0.05
 selDataMatrix<-dataMatrix[presentCount>0,]
+
 #select columns with day 14 data according to exp design
 #excel spreadsheet
 dose500day14Data<-selDataMatrix[,c("HVE_A4", "HVE_A8","HVE_A12",
                                    "HVE_C4", "HVE_C8","HVE_C12")]
 
 #making a design matrix based on limma vignette pg 41
+#using the sample key for our experiment to get sample annotations
+
 SampleKey<-read.csv("SampleKey.csv")
 
 dose500Design<-SampleKey%>%
