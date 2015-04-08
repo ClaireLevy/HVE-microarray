@@ -2,7 +2,7 @@
 #started 26March15
 
 
-
+require(dplyr)
 library(lumi)
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
 #LMF sent FinalReport_exvivoTNF_HVE_032615.txt which is raw
@@ -135,5 +135,73 @@ library(limma)
 dataMatrix<-exprs(RAWlumi.N.Q)
 head(dataMatrix)
 #remove unexpressed and and un-annotated genes
+#detectionCall "estimates the percentage of expressed genes
+#of each sample" but I don't know what that means.
+#I think this shows which probes have detection pvalues <0.01
 
 
+presentCount<-detectionCall(RAWlumi.N.Q,Th=0.01, type = "probe")
+#then this takes only those that have >0 occurances of pval<0.01
+selDataMatrix<-dataMatrix[presentCount>0,]
+#select columns with day 14 data according to exp design
+#excel spreadsheet
+dose500day14Data<-selDataMatrix[,c("HVE_A4", "HVE_A8","HVE_A12",
+                                   "HVE_C4", "HVE_C8","HVE_C12")]
+
+#making a design matrix based on limma vignette pg 41
+SampleKey<-read.csv("SampleKey.csv")
+
+dose500Design<-SampleKey%>%
+  dplyr::filter(Day==14, Concentration!=50)%>%
+  dplyr::select(CellLine, Concentration)
+
+Group<-factor(dose500Design$Concentration, levels=c("0","500"))
+design<-model.matrix(~0+Group)#0 means no intercept I guess
+colnames(design)<-c("Control","Treatment")
+
+
+#fit the model
+fit<-lmFit(dose500day14Data,design)
+
+#Given a linear model fit to microarray data, compute estimated coefficients
+#and standard errors for a given set of contrasts.
+cont.matrix<-makeContrasts(TreatmentvsControl=Treatment-Control,
+                           levels=design)
+
+
+#Given a microarray linear model fit, compute moderated t-statistics, moderated F-statistic, and log-odds of differential expression by empirical
+#Bayes moderation of the standard errors towards a common value.
+
+#fit model to contrasts matrix
+fit2<-contrasts.fit(fit,cont.matrix)
+fit2<-eBayes(fit2)
+
+topTable(fit2,adjust="BH")
+
+#non-contrasts matrix?
+fit<-eBayes(fit)
+
+topTable(fit,adjust="BH")
+
+
+#get significant geen list with FDR adj p values<0.01
+#lumi seems to skip the "fit2" step (no contrasts?)
+require(lumiHumanAll.db)
+require(annotate)
+probeList<-rownames(selDataMatrix)
+geneSymbol<-getSYMBOL(probeList,"illuminaHumanv4.db")
+#lumi writes this whole thing as a function so there is sapply
+#before lookUp
+geneName<-lookUp(probeList,"illuminaHumanv4.db","GENENAME")
+
+#make a df of probes, gene symbols and genenames
+fit2$genes<-data.frame(ID=probeList, geneSymbol=geneSymbol,
+                       geneName=geneName)
+
+#print the top 10 genes
+topTable(fit2,adjust="fdr",
+               number=10)
+
+p.adj<-p.adjust(fit$p.value[,2])
+
+sigGene.adj<-probeList[p.adj<0.01]
