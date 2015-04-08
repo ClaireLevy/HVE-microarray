@@ -30,7 +30,7 @@ RAW.lumi =lumiR(RAW,
 
 
 RAW.lumi
-#why use lumiHumanAll.db instead of illuminaHumanv4.db?
+
 
 summary(RAW.lumi,"QC")
 #some QC plots
@@ -132,6 +132,7 @@ p2("Red = day 1, green = 4, blue = 7, purple = 14")
 #It seems like it is more for data with low expression values...
 
 library(limma)
+require(genefilter)
 dataMatrix<-exprs(RAWlumi.N.Q)
 head(dataMatrix)
 
@@ -140,14 +141,39 @@ head(dataMatrix)
 #of each sample" but I don't know what that means.
 #I think this shows which probes have detection pvalues <0.01
 
+####################### FILTER DETECTION ######################
 presentCount<-detectionCall(RAWlumi.N.Q,Th=0.05, type = "probe")
 
 #then this takes only those that have >0 occurances of pval<0.05
 selDataMatrix<-dataMatrix[presentCount>0,]
 
+############################ FILTER SD##################
+#calculate the row standard deviations
+selDataMatrixSds<-rowSds(selDataMatrix)
+
+sh<-shorth(selDataMatrixSds)#shortest interval containing half the data
+
+hist(selDataMatrixSds,breaks=50)
+abline(v=sh, col="red")#draw a line at the shorth
+
+#discard the probe sets with sd>=shorth
+
+selDataMatrixFiltered<-selDataMatrix[selDataMatrixSds>=sh,]
+
+#compare the filtered and unfiltered lumiBatch
+
+dim(selDataMatrix)
+dim(selDataMatrixFiltered)
+dim(selDataMatrix)[1]-dim(selDataMatrixFiltered)[1]
+#got rid of ~10k probes
+
+
+################ FIT MODEL ################################
+
+
 #select columns with day 14 data according to exp design
 #excel spreadsheet
-dose500day14Data<-selDataMatrix[,c("HVE_A4", "HVE_A8","HVE_A12",
+dose500day14Data<-selDataMatrixFiltered[,c("HVE_A4", "HVE_A8","HVE_A12",
                                    "HVE_C4", "HVE_C8","HVE_C12")]
 
 #making a design matrix based on limma vignette pg 41
