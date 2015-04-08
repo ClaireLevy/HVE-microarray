@@ -32,12 +32,10 @@ rm(temp)
 
 # add column indicating whether p < 0.05 for all 3 days and replace Term
 # column with GO ids where possible
-# note: removing 500 down because data are bad
 david <- david %>%
    mutate(Term = ifelse(str_detect(Term,"GO:"), substr(Term,1,10), Term)) %>% 
-   filter(!(direction == "DOWN" & Concentration == 500)) %>% # remove once data is good
    group_by(Concentration, direction, Term) %>%
-   summarize(Significant = all(Benjamini < 0.05)) %>%
+   summarize(Significant = all(PValue < 0.05)) %>%
    ungroup()
 
 # generate summary table of DAVID results
@@ -51,10 +49,8 @@ davidResult <- david %>%
 ###############################################################################
 # How many GO terms are enriched on days 4, 7, and 14 in the InnateDB database? 
 ###############################################################################
-# Copy the terms and p values into new columns for the InnateDB data. Columns
-# need these names for subsetToOverlappingGoTerms() to work
 innate <- getAllInnateDB(50) %>%
-   mutate(Concentration = 50, Term = Pathway.Id, PValue = Pathway.p.value.corrected)
+   mutate(Concentration = 50, Term = Pathway.Id)
 
 innate <- rbind(
    subsetToOverlappingGoTerms(innate, direction = "UP", withDay1 = FALSE),
@@ -62,7 +58,7 @@ innate <- rbind(
 )
 
 temp <- getAllInnateDB(500) %>%
-   mutate(Concentration = 500, Term = Pathway.Id, PValue = Pathway.p.value.corrected)
+   mutate(Concentration = 500, Term = Pathway.Id)
 
 innate <- rbind(innate,
    subsetToOverlappingGoTerms(temp, direction = "UP", withDay1 = FALSE),
@@ -74,7 +70,7 @@ rm(temp)
 # add column indicating whether p < 0.05 for all 3 days 
 innate <- innate %>%
    group_by(Concentration, direction, Term) %>%
-   summarize(Significant = all(Pathway.p.value.corrected < 0.05)) %>%
+   summarize(Significant = all(PValue < 0.05)) %>%
    ungroup()
 
 # generate summary table of InnateDB results
@@ -101,7 +97,6 @@ bothDatabases <- rbind(
 )
 
 bothDatabases %>%
-   filter(!(direction == "DOWN" & Concentration == 500)) %>% # remove once DAVID data is good
    group_by(Concentration, direction, Term) %>%
    summarize(OneSignificant = sum(Significant) > 0,
       AllSignificant = sum(Significant) == 2) %>%

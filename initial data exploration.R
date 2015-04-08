@@ -97,7 +97,7 @@ ggsave("plot150UP.png", width=4, height=4, dpi=100)
 source("getAllDavid.R")
 source("getAllInnateDB.R")
 source('subsetToOverlappingGoTerms.R')
-source("write-files-for-DAVID-and-InnateDB.R")
+#source("write-files-for-DAVID-and-InnateDB.R") # rewrites files, don't need each time
 source("analyzeAndWriteGO.R")
 #################DAVID/INNATE ORA OVERALL #####################
 # The overall overrepresentation analysis involves:
@@ -127,9 +127,7 @@ source("analyzeAndWriteGO.R")
 #################DAVID/INNATE WEBSITE #######################
 
 # Step 3
-#NOTE: on DAVID site I used the illumina HT 12 v3 background 
-# and  in the functional annotation chart,under options
-#checked "Fisher exact", then reran with options and saved.
+# See getAllDavid for details of website use
 
 ###############GET DAVID RESULTS AS DF #####################
 

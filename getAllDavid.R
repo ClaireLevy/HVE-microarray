@@ -1,8 +1,40 @@
 # Reads in all of the files created by DAVID for the desired concentration
 # and returns them as a data frame
 
+# Accessed 2 Apr 2015, DAVID version 6.7
 
-concentration<-50
+# Databases used: 
+# Disease
+#     OMIM_DISEASE
+# Functional_Categories
+#     COG_ONTOLOGY
+#     SP_PIR_KEYWORDS
+#     UP_SEQ_FEATURE
+# Gene_Ontology
+#     GOTERM_BP_FAT
+#     GOTERM_CC_FAT
+#     GOTERM_MF_FAT
+#     PANTHER_BP_ALL
+#     PANTHER_MF_ALL
+# General Annotations
+#     (none)
+# Literature
+#     (none)
+# Main_Accessions
+#     (none)
+# Pathways
+#     BBID
+#     BIOCARTA
+#     KEGG_PATHWAY
+#     PANTHER_PATHWAY
+#     REACTOME_PATHWAY
+# Protein_Domains
+#     (none)
+# Protein_Interactions
+#     (none)
+# Tissue_Expression
+#     (none)
+
 require(dplyr)
 require(stringr)
 getAllDavid <- function(concentration) {
@@ -15,7 +47,7 @@ getAllDavid <- function(concentration) {
    Dlist <- paste(folder, "/", Dlist, sep = "")
    
    #apply read.csv over the list
-   data<-lapply(Dlist,read.csv)
+   data<-lapply(Dlist,read.csv, colClasses = "factor")
    
    #give the list elements names
    names(data)<- stringr::str_replace(Dlist, pattern = ".csv", replacement = "")
@@ -33,6 +65,17 @@ getAllDavid <- function(concentration) {
    suppressWarnings(data <- dplyr::rbind_all(data))
    colnames(data)[colnames(data) == "X."] <- "Percentage"
    
+   data$Count <- as.integer(data$Count)
+   data$Percentage <- as.numeric(data$Percentage)
+   data$PValue <- as.numeric(data$PValue)
+   data$List.Total <- as.integer(data$List.Total)
+   data$Pop.Hits <- as.integer(data$Pop.Hits)
+   data$Pop.Total <- as.integer(data$Pop.Total)
+   data$Fold.Enrichment <- as.numeric(data$Fold.Enrichment)
+   data$Bonferroni <- as.numeric(data$Bonferroni)
+   data$Benjamini <- as.numeric(data$Benjamini)
+   data$FDR <- as.numeric(data$FDR)
+      
    #add a column with just the go ids
   data<-mutate(data,Pathway.Id=ifelse(str_detect(data$Term,"GO:")==TRUE,
                              substr(data$Term,1,10),NA))
