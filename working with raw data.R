@@ -145,27 +145,44 @@ head(dataMatrix)
 presentCount<-detectionCall(RAWlumi.N.Q,Th=0.05, type = "probe")
 
 #then this takes only those that have >0 occurances of pval<0.05
+
 selDataMatrix<-dataMatrix[presentCount>0,]
+
+sampleNotZero<-detectionCall(selDataMatrix,Th=0.05, type = "sample")
+
+hist(selDataMatrix, breaks=50)
+
+zero<-function(x){
+  selDataMatrix[,x]==0
+}
+
+which(apply(SampleMatrix,2,zero))
+
+which(selDataMatrix[,x]==0)
+
+SampleMatrix<-as.matrix(read.csv("SampleMatrix.csv",
+                                 stringsAsFactors=FALSE))
+
+selDataMatrix[1,SampleMatrix[1,1:2]]
+
+
+
 
 ############################ FILTER SD##################
 #calculate the row standard deviations
 selDataMatrixSds<-rowSds(selDataMatrix)
 
-sh<-shorth(selDataMatrixSds)#shortest interval containing half the data
-
 hist(selDataMatrixSds,breaks=50)
-abline(v=sh, col="red")#draw a line at the shorth
+shorth(selDataMatrixSds)
 
-#discard the probe sets with sd>=shorth
-
-selDataMatrixFiltered<-selDataMatrix[selDataMatrixSds>=sh,]
+selDataMatrixFiltered<-selDataMatrix[selDataMatrixSds>=0.2,]
 
 #compare the filtered and unfiltered lumiBatch
 
 dim(selDataMatrix)
 dim(selDataMatrixFiltered)
 dim(selDataMatrix)[1]-dim(selDataMatrixFiltered)[1]
-#got rid of ~10k probes
+#got rid of ~20k probes
 
 
 ################ FIT MODEL ################################
