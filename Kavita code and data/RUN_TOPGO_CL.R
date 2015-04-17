@@ -106,17 +106,23 @@ names(found2) = CLall_genes
 #make a list mapping GO ids and their corresponding symbols
 GOtoGene<- split(annotations_bp$hgnc_symbol,annotations_bp$go_id)
 
-# (This also makes a list, but lapply, unique didn't work)
-#GotoGene<-unstack(annotations, hgnc_symbol~go_id)
 
 #remove duplicates
 GOtoGene<- lapply(GOtoGene, unique)  
 
 #Go2Genes argument needs to be a mapping list
-topGOdata <- new("topGOdata",description = "Simple session",
+topGOdata <- new("topGOdata",description = "Simple session",#??
                      ontology = "BP",
                      allGenes = found,
                      nodeSize = 5,
                      annot = annFUN.GO2genes,
                      GO2genes = GOtoGene)
+#Questions:
+# what does "Simple session" the description argument mean?
+#why just BP data?
 
+#if value and filters are left blank in getBM, does it just annotate
+#the whole genome?
+
+#what are the advantages of the org.xx.xx.db method over the biomaRt
+#method?
