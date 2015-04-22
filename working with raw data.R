@@ -136,10 +136,15 @@ require(genefilter)
 dataMatrix<-exprs(RAWlumi.N.Q)
 head(dataMatrix)
 
+
+hist(dataMatrix,breaks=50)
+abline(v=7, col="red")
+
+
 #remove unexpressed and and un-annotated genes
 #detectionCall "estimates the percentage of expressed genes
 #of each sample" but I don't know what that means.
-#I think this shows which probes have detection pvalues <0.01
+#I think this shows which probes have detection pvalues <0.05
 
 ####################### FILTER DETECTION ######################
 presentCount<-detectionCall(RAWlumi.N.Q,Th=0.05, type = "probe")
@@ -148,23 +153,18 @@ presentCount<-detectionCall(RAWlumi.N.Q,Th=0.05, type = "probe")
 
 selDataMatrix<-dataMatrix[presentCount>0,]
 
-sampleNotZero<-detectionCall(selDataMatrix,Th=0.05, type = "sample")
+
 
 hist(selDataMatrix, breaks=50)
+abline(v=7,col="red")
 
-zero<-function(x){
-  selDataMatrix[,x]==0
-}
+min(selDataMatrix)
 
-which(apply(SampleMatrix,2,zero))
-
-which(selDataMatrix[,x]==0)
-
-SampleMatrix<-as.matrix(read.csv("SampleMatrix.csv",
-                                 stringsAsFactors=FALSE))
-
-selDataMatrix[1,SampleMatrix[1,1:2]]
-
+#####
+##SampleMatrix<-as.matrix(read.csv("SampleMatrix.csv",stringsAsFactors=FALSE))
+#
+##selDataMatrix[1,SampleMatrix[1,1:2]]
+####
 
 
 
@@ -173,9 +173,14 @@ selDataMatrix[1,SampleMatrix[1,1:2]]
 selDataMatrixSds<-rowSds(selDataMatrix)
 
 hist(selDataMatrixSds,breaks=50)
-shorth(selDataMatrixSds)
+
 
 selDataMatrixFiltered<-selDataMatrix[selDataMatrixSds>=0.2,]
+
+
+hist(selDataMatrix, breaks=50)
+hist(selDataMatrixFiltered, breaks=50)
+
 
 #compare the filtered and unfiltered lumiBatch
 
@@ -184,7 +189,32 @@ dim(selDataMatrixFiltered)
 dim(selDataMatrix)[1]-dim(selDataMatrixFiltered)[1]
 #got rid of ~20k probes
 
+z<-melt(selDataMatrixFiltered)
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+z$probe<-factor(z$probe)
+library(stringr)
+z<-mutate(z,dose=ifelse(str_detect(z$sample,"A")==TRUE,0,
+          ifelse(str_detect(z$sample,"B")==TRUE,50,500)))
 
+z$sample<-str_replace_all(z$sample,"HVE_","")
+  
+z<-arrange(z,by=probe,dose,sample)
+
+y<-filter(z,dose==0)
+
+x<-filter(z,dose==50)
+
+m<-cbind(y,x)
+m<-m[,c(1:4,6:8)]
+
+m<-mutate(m, diff=abs(expr-expr.1))
+hist(m$diff,breaks=100)
+
+
+ggplot(y, aes(x=probe, y=expr))+
+geom_point(aes(color=sample),alpha=0.5)
 ################ FIT MODEL ################################
 
 
@@ -225,20 +255,27 @@ fit2<-eBayes(fit2)
 
 topTable(fit2,adjust="BH")
 
-#non-contrasts matrix?
+sel#non-contrasts matrix?
 fit<-eBayes(fit)
 
 topTable(fit,adjust="BH")
 
+###########now starting from lumi vignette pg 35##################
 
-#get significant geen list with FDR adj p values<0.01
+
+#get significant gene list with FDR adj p values<0.01
 #lumi seems to skip the "fit2" step (no contrasts?)
+
 require(lumiHumanAll.db)
 require(annotate)
+require(illuminaHumanv4.db)
+
 probeList<-rownames(selDataMatrix)
+
 geneSymbol<-getSYMBOL(probeList,"illuminaHumanv4.db")
 #lumi writes this whole thing as a function so there is sapply
 #before lookUp
+
 geneName<-lookUp(probeList,"illuminaHumanv4.db","GENENAME")
 
 #make a df of probes, gene symbols and genenames
@@ -249,6 +286,7 @@ fit2$genes<-data.frame(ID=probeList, geneSymbol=geneSymbol,
 topTable(fit2,adjust="fdr",
                number=10)
 
+#get significant gene list with FDR adjusted p.values less than 0.01
 p.adj<-p.adjust(fit$p.value[,2])
 
 sigGene.adj<-probeList[p.adj<0.01]
