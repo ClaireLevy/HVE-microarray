@@ -13,7 +13,8 @@ setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
 
 #she also sent her code for reading in and normalising (below)
 
-### LMF:load data into memory 
+######################## READ IN RAW DATA #########################
+#LMF:load data into memory 
 RAW<-'FinalReport_032615_exvivo_TNF_HVE.txt'
 ##LMF:read raw data into lumibatch object
 RAW.lumi =lumiR(RAW,
@@ -51,6 +52,8 @@ preNormBox<-boxplot(RAW.lumi)
 #together and others don't.
 plotSampleRelation(RAW.lumi, method="mds")
 
+#################### NORMALISATION AND QC ###########################
+
 ##LMF:perform vst transformation and rsn normalization
 #lumiT returns a LumiBatch object with transformed exprs values
 #does log2, vst and cubicRoot transformations
@@ -76,7 +79,7 @@ plotSampleRelation(RAWlumi.N.Q, method="mds")
 
 head(detection(RAWlumi.N.Q))
 
-############# FILTERING DETECTION ###############################
+########################## FILTER DETECTION ###############################
 
 #I only want probes where the detection is <0.05 for all 3 donors of dose=0,
 #OR all of dose=50 OR all of dose=500
@@ -154,64 +157,9 @@ dims(expressed)
 #19386 probes left
 dims(RAWlumi.N.Q)-dims(expressed)
 #removed 27937 probes
-###############################################################################
-# explore sample relations
-###############################################################################
-
-# colors 
-red <- "#E41A1C"
-blue <- "#377EB8"
-green <- "#4DAF4A"
-purple <- "#984EA3"
-
-# get key to experiment IDs
-key <- read.csv("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData/SampleKey.csv",
-   header = T)
-key$MicroarrayId <- paste("HVE_", key$MicroarrayId, sep = "")
-
-# sort the "key" data frame according to the order that the samples are in in 
-# the lumi file for convenience when providing the color arguments
-sortKey <- function() {
-   key[match(sampleNames(RAWlumi.N.Q), key$MicroarrayId), ]
-}
-
-# convenience plot function
-p <- function(title) {
-   lumi::plotSampleRelation(RAWlumi.N.Q, method="mds", color = sortKey()$Color, 
-      main = title)
-}
-
-# convenience plot function (limma)
-p2 <- function(title) {
-   limma::plotMDS(RAWlumi.N.Q, pch = 16, col = sortKey()$Color, 
-      main = title, top = 3000)
-   # limma bases the distance on "top" number of genes
-   # I chose 3000 because it's roughly how many were differentially expressed
-   
-   # for some reason it's the mirror image of the lumi plots
-}
-
-# by TFV concentration
-key$Color <- ifelse(key$Concentration == 0, red, 
-   ifelse(key$Concentration == 50, green, blue))
-p("Colors are messed up damn you lumi Blue = 500 uM tenofovir, green = 50, red = 0")
-p2("Blue = 500 uM tenofovir, green = 50, red = 0")
-
-# by cell line
-key$Color <- ifelse(key$CellLine == "HVE1", red, 
-   ifelse(key$CellLine == "HVE2", green, blue))
-p("Blue = HVE3, green = HVE2, red = HVE1")
-p2("Blue = HVE3, green = HVE2, red = HVE1")
-
-# by day
-key$Color <- ifelse(key$Day == 1, red, 
-   ifelse(key$Day == 4, green, 
-      ifelse(key$Day == 7, blue, purple)))
-p("Red = day 1, green = 4, blue = 7, purple = 14")
-p2("Red = day 1, green = 4, blue = 7, purple = 14")
 
 
-############################ FILTER SD##################
+############################ FILTER SD  ##################
 dataMatrix<-exprs(expressed)
 hist(dataMatrix, breaks=50)
 
@@ -275,7 +223,5 @@ topTable(fit,coef="Treatmentdrug",adjust="BH")
 
 #Now need to filter for logFC ??
 
-
-###########now starting from lumi vignette pg 35##################
 
 
