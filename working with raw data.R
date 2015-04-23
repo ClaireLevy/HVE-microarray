@@ -4,6 +4,7 @@
 
 require(dplyr)
 library(lumi)
+library(limma)
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
 #LMF sent FinalReport_exvivoTNF_HVE_032615.txt which is raw
 #data with control PROBE profile data rather than control
@@ -63,6 +64,8 @@ RAWlumi.N = lumiN(RAWlumi.T, method = "rsn")
 RAWlumi.N.Q = lumiQ(RAWlumi.N, detectionTh = 0.05)
 summary(RAWlumi.N.Q,"QC")#mean expression is much more uniform
 
+
+
 #check the plots after normalization and transformation
 #all more uniform
 NormDensity<-density(RAWlumi.N.Q)
@@ -71,6 +74,86 @@ NormBox<-boxplot(RAWlumi.N.Q)
 
 plotSampleRelation(RAWlumi.N.Q, method="mds")
 
+head(detection(RAWlumi.N.Q))
+
+############# FILTERING DETECTION ###############################
+
+#I only want probes where the detection is <0.05 for all 3 donors of dose=0,
+#OR all of dose=50 OR all of dose=500
+
+#select all the such that the columns arranged by dose and then day
+allDays.N.Q<-RAWlumi.N.Q[,c("HVE_A1","HVE_A5","HVE_A9",
+                     "HVE_B1","HVE_B5","HVE_B9",
+                     "HVE_C1","HVE_C5","HVE_C9",
+                     "HVE_A2","HVE_A6","HVE_A10",
+                     "HVE_B2","HVE_B6","HVE_B10",
+                     "HVE_C2","HVE_C6","HVE_C10",
+                     "HVE_A3","HVE_A7","HVE_A11",
+                     "HVE_B3","HVE_B7","HVE_B11",
+                     "HVE_C3","HVE_C7","HVE_C11",
+                     "HVE_A4","HVE_A8","HVE_A12",
+                     "HVE_B4","HVE_B8","HVE_B12",
+                     "HVE_C4","HVE_C8","HVE_C12")]
+
+
+
+# from the detection data of the lumiBatch created above,
+#select the probes (rows) where detection is <0.05 for ALL of 
+#the donors (==3) for dose=0  OR dose = 50 OR dose = 500 on
+#any of the days.
+#day1 is cols 1:9, day4 is 10:18, etc, 3 donors per dose per day.
+
+#in other words....
+
+#For each row (probe) determine whether the detection p values
+#in a group of ALL the donors for a single condition
+#(dose + day,ex HVE_A1, A5,A9) are <0.05.
+# If they are, rowSums==3 b/c "1"(yes) for all 3 of the columns.
+# and that probe is TRUE. If not, FALSE.
+#I want to keep probes where the rowSums==3 is TRUE
+#for AT LEAST one of the 9 groups (3 doses x 3 donors) across the
+#4 days so I use | to say it can be true for this group OR this group...
+
+# The resulting logical vector is all the probes and the value TRUE or
+# FALSE for each of them telling me if at least 1/9 groups fits the
+#condition that rowSums==3.
+
+
+expressedLogical<-rowSums(detection(allDays.N.Q[,1:3]) <0.05)==3|
+  rowSums(detection(allDays.N.Q[,4:6]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,7:9]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,10:12]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,13:15]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,16:18]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,19:21]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,22:24]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,25:27]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,28:30]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,31:33]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,34:36]) <0.05) ==3
+  
+#test this code by making up a matrix where some rows meet the condition
+#that 3 consecutive columns are all<0.05 and some dont.
+test<-read.csv("testMatrix.csv")
+test
+#The resulting vector should be T, T, T ,F,T,F,F
+print(testLogical<-rowSums(test[,1:3]<0.05)==3|
+  rowSums(test[,4:6]<0.05)==3|
+  rowSums(test[,7:9]<0.05)==3)
+#looks ok
+
+
+
+#Now I need to subset the lumibatch to just contain those TRUE probes.
+#To do that, I pass this logical vector to the lumiBatch to
+# which subsets the lumiBatch to contain only the probes that are TRUE.
+expressed<-allDays.N.Q[expressedLogical,]
+
+dims(RAWlumi.N.Q)
+dims(expressed)
+#19386 probes left
+dims(RAWlumi.N.Q)-dims(expressed)
+#removed 27937 probes
 ###############################################################################
 # explore sample relations
 ###############################################################################
@@ -127,166 +210,72 @@ key$Color <- ifelse(key$Day == 1, red,
 p("Red = day 1, green = 4, blue = 7, purple = 14")
 p2("Red = day 1, green = 4, blue = 7, purple = 14")
 
-###################Continuing with lumi script, identify DEGs ##############
-#Should I do the "inverse VST transform to the raw scale"??
-#It seems like it is more for data with low expression values...
-
-library(limma)
-require(genefilter)
-load("RAWlumi.N.Q.Rda")
-dataMatrix<-exprs(RAWlumi.N.Q)
-head(dataMatrix)
-hist(dataMatrix,breaks=50)
-abline(v=7, col="red")
-assayDataMatrix<-assayData(RAWlumi.N.Q)
-head(assayDataMatrix)
-assayDataMatrix
-#remove unexpressed and and un-annotated genes
-#detectionCall "estimates the percentage of expressed genes
-#of each sample" but I don't know what that means.
-#I think this shows which probes have detection pvalues <0.05
-
-####################### FILTER DETECTION ######################
-#this keeps all probes where at least one condition has p<=0.05
-#I need to remove those that have p<=0.05 in 100% of at least 
-#one of the groups. (Group = same probe, day and dose)
-library(reshape2)
-library(dplyr)
-library(ggplot2)
-library(stringr)
-z<-melt(dataMatrix)
-colnames(z)<-c("probe","sample","expr")
-z$probe<-factor(z$probe)
-head(z)
-
-z<-mutate(z,dose=ifelse(str_detect(z$sample,"A")==TRUE,0,
-                        ifelse(str_detect(z$sample,"B")==TRUE,50,500)))
-
-z$sample<-str_replace_all(z$sample,"HVE_","")
-
-z<-arrange(z,by=probe,dose,sample)
-
-
-
-m<-mutate(m, diff=abs(expr-expr.1))
-hist(m$diff,breaks=100)
-
-
-presentCount<-detectionCall(RAWlumi.N.Q,Th=0.05, type = "probe")
-
-#then this takes only those that have >0 occurances of pval<0.05
-
-selDataMatrix<-dataMatrix[presentCount>0,]
-
-hist(selDataMatrix, breaks=50)
-abline(v=7,col="red")
-
-min(selDataMatrix)
-
-#####
-##SampleMatrix<-as.matrix(read.csv("SampleMatrix.csv",stringsAsFactors=FALSE))
-#
-##selDataMatrix[1,SampleMatrix[1,1:2]]
-####
-
-
 
 ############################ FILTER SD##################
+dataMatrix<-exprs(expressed)
+hist(dataMatrix, breaks=50)
+
+library(limma)
+library(genefilter)
+
 #calculate the row standard deviations
-selDataMatrixSds<-rowSds(selDataMatrix)
+rowSdsMatrix<-rowSds(dataMatrix)
 
-hist(selDataMatrixSds,breaks=50)
+hist(rowSdsMatrix,breaks=50)
+
+#subset dataMatrix to get just the probes where the rowSD is >0.2
+dataMatrixSDfilter<-dataMatrix[rowSdsMatrix>=0.2,]
 
 
-selDataMatrixFiltered<-selDataMatrix[selDataMatrixSds>=0.2,]
-
-
-hist(selDataMatrix, breaks=50)
-hist(selDataMatrixFiltered, breaks=50)
-
+hist(dataMatrixSDfilter, breaks=50)
 
 #compare the filtered and unfiltered lumiBatch
 
-dim(selDataMatrix)
-dim(selDataMatrixFiltered)
-dim(selDataMatrix)[1]-dim(selDataMatrixFiltered)[1]
-#got rid of ~20k probes
-
-
+dim(dataMatrix)[1]-dim(dataMatrixSDfilter)[1]
+#got rid of 9006 probes
+dim(dataMatrixSDfilter)[1]
+#10380 left
 
 
 ################ FIT MODEL ################################
+#Just looking at day14 dose 500 ( and controls)
 
-
-#select columns with day 14 data according to exp design
-#excel spreadsheet
-dose500day14Data<-selDataMatrixFiltered[,c("HVE_A4", "HVE_A8","HVE_A12",
+#select columns with day 14 data 
+dose500day14Data<-dataMatrixSDfilter[,c("HVE_A4", "HVE_A8","HVE_A12",
                                    "HVE_C4", "HVE_C8","HVE_C12")]
 
-#making a design matrix based on limma vignette pg 41
-#using the sample key for our experiment to get sample annotations
+#making a design matrix based on limma vignette pg 42
+#using the sample key for our experiment
 
-SampleKey<-read.csv("SampleKey.csv")
+#set up the targets frame, making sure the sample order
+#is the same as in the data (3 controls, 3 treatments)
+targets<-data.frame("CellLine"=c("HVE1","HVE2","HVE3",
+                                 "HVE1","HVE2","HVE3"),
+                    "Treatment"=c("control","control","control",
+                                  "drug","drug","drug"))
 
-dose500Design<-SampleKey%>%
-  dplyr::filter(Day==14, Concentration!=50)%>%
-  dplyr::select(CellLine, Concentration)
+#using the targets frame, make a design matrix that accounts for
+#pairing within Cell lines (i.e. HVE1 dose=0 and HVE1 dose=500 
+#go together). see limma guide pg 42
+CellLine<-factor(targets$CellLine, levels=c("HVE1","HVE2","HVE3"))
+Treatment<-factor(targets$Treatment, levels=c("control","drug"))
 
-Group<-factor(dose500Design$Concentration, levels=c("0","500"))
-design<-model.matrix(~0+Group)#0 means no intercept I guess
-colnames(design)<-c("Control","Treatment")
+#make the design matrix
+design<-model.matrix(~0+CellLine+Treatment)
 
-
-#fit the model
+#fit the model using the design matrix and the data
 fit<-lmFit(dose500day14Data,design)
-
-#Given a linear model fit to microarray data, compute estimated coefficients
-#and standard errors for a given set of contrasts.
-cont.matrix<-makeContrasts(TreatmentvsControl=Treatment-Control,
-                           levels=design)
-
 
 #Given a microarray linear model fit, compute moderated t-statistics, moderated F-statistic, and log-odds of differential expression by empirical
 #Bayes moderation of the standard errors towards a common value.
 
-#fit model to contrasts matrix
-fit2<-contrasts.fit(fit,cont.matrix)
-fit2<-eBayes(fit2)
-
-topTable(fit2,adjust="BH")
-
-sel#non-contrasts matrix?
 fit<-eBayes(fit)
 
-topTable(fit,adjust="BH")
+topTable(fit,coef="Treatmentdrug",adjust="BH")
+
+#Now need to filter for logFC ??
+
 
 ###########now starting from lumi vignette pg 35##################
 
 
-#get significant gene list with FDR adj p values<0.01
-#lumi seems to skip the "fit2" step (no contrasts?)
-
-require(lumiHumanAll.db)
-require(annotate)
-require(illuminaHumanv4.db)
-
-probeList<-rownames(selDataMatrix)
-
-geneSymbol<-getSYMBOL(probeList,"illuminaHumanv4.db")
-#lumi writes this whole thing as a function so there is sapply
-#before lookUp
-
-geneName<-lookUp(probeList,"illuminaHumanv4.db","GENENAME")
-
-#make a df of probes, gene symbols and genenames
-fit2$genes<-data.frame(ID=probeList, geneSymbol=geneSymbol,
-                       geneName=geneName)
-
-#print the top 10 genes
-topTable(fit2,adjust="fdr",
-               number=10)
-
-#get significant gene list with FDR adjusted p.values less than 0.01
-p.adj<-p.adjust(fit$p.value[,2])
-
-sigGene.adj<-probeList[p.adj<0.01]
