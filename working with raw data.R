@@ -133,27 +133,50 @@ p2("Red = day 1, green = 4, blue = 7, purple = 14")
 
 library(limma)
 require(genefilter)
+load("RAWlumi.N.Q.Rda")
 dataMatrix<-exprs(RAWlumi.N.Q)
 head(dataMatrix)
-
-
 hist(dataMatrix,breaks=50)
 abline(v=7, col="red")
-
-
+assayDataMatrix<-assayData(RAWlumi.N.Q)
+head(assayDataMatrix)
+assayDataMatrix
 #remove unexpressed and and un-annotated genes
 #detectionCall "estimates the percentage of expressed genes
 #of each sample" but I don't know what that means.
 #I think this shows which probes have detection pvalues <0.05
 
 ####################### FILTER DETECTION ######################
+#this keeps all probes where at least one condition has p<=0.05
+#I need to remove those that have p<=0.05 in 100% of at least 
+#one of the groups. (Group = same probe, day and dose)
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+z<-melt(dataMatrix)
+colnames(z)<-c("probe","sample","expr")
+z$probe<-factor(z$probe)
+head(z)
+
+z<-mutate(z,dose=ifelse(str_detect(z$sample,"A")==TRUE,0,
+                        ifelse(str_detect(z$sample,"B")==TRUE,50,500)))
+
+z$sample<-str_replace_all(z$sample,"HVE_","")
+
+z<-arrange(z,by=probe,dose,sample)
+
+
+
+m<-mutate(m, diff=abs(expr-expr.1))
+hist(m$diff,breaks=100)
+
+
 presentCount<-detectionCall(RAWlumi.N.Q,Th=0.05, type = "probe")
 
 #then this takes only those that have >0 occurances of pval<0.05
 
 selDataMatrix<-dataMatrix[presentCount>0,]
-
-
 
 hist(selDataMatrix, breaks=50)
 abline(v=7,col="red")
@@ -189,32 +212,9 @@ dim(selDataMatrixFiltered)
 dim(selDataMatrix)[1]-dim(selDataMatrixFiltered)[1]
 #got rid of ~20k probes
 
-z<-melt(selDataMatrixFiltered)
-library(reshape2)
-library(dplyr)
-library(ggplot2)
-z$probe<-factor(z$probe)
-library(stringr)
-z<-mutate(z,dose=ifelse(str_detect(z$sample,"A")==TRUE,0,
-          ifelse(str_detect(z$sample,"B")==TRUE,50,500)))
-
-z$sample<-str_replace_all(z$sample,"HVE_","")
-  
-z<-arrange(z,by=probe,dose,sample)
-
-y<-filter(z,dose==0)
-
-x<-filter(z,dose==50)
-
-m<-cbind(y,x)
-m<-m[,c(1:4,6:8)]
-
-m<-mutate(m, diff=abs(expr-expr.1))
-hist(m$diff,breaks=100)
 
 
-ggplot(y, aes(x=probe, y=expr))+
-geom_point(aes(color=sample),alpha=0.5)
+
 ################ FIT MODEL ################################
 
 
