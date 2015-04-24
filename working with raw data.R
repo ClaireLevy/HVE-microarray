@@ -186,14 +186,14 @@ dim(dataMatrixSDfilter)[1]
 
 
 ################ FIT MODEL ################################
-#Just looking at day14 dose 500 ( and controls)
-
+#Just looking at day14 dose 500 (and controls)
+load(dataMatrixSDfilter)
 #select columns with day 14 data 
 dose500day14Data<-dataMatrixSDfilter[,c("HVE_A4", "HVE_A8","HVE_A12",
                                    "HVE_C4", "HVE_C8","HVE_C12")]
 
 #making a design matrix based on limma vignette pg 42
-#using the sample key for our experiment
+
 
 #set up the targets frame, making sure the sample order
 #is the same as in the data (3 controls, 3 treatments)
@@ -205,23 +205,28 @@ targets<-data.frame("CellLine"=c("HVE1","HVE2","HVE3",
 #using the targets frame, make a design matrix that accounts for
 #pairing within Cell lines (i.e. HVE1 dose=0 and HVE1 dose=500 
 #go together). see limma guide pg 42
+
 CellLine<-factor(targets$CellLine, levels=c("HVE1","HVE2","HVE3"))
 Treatment<-factor(targets$Treatment, levels=c("control","drug"))
 
 #make the design matrix
-design<-model.matrix(~0+CellLine+Treatment)
+design<-model.matrix(~0 + CellLine + Treatment)
+
+#Do I need a contrasts matrix?
 
 #fit the model using the design matrix and the data
 fit<-lmFit(dose500day14Data,design)
 
-#Given a microarray linear model fit, compute moderated t-statistics, moderated F-statistic, and log-odds of differential expression by empirical
-#Bayes moderation of the standard errors towards a common value.
+#"Given a microarray linear model fit, compute moderated t-statistics,
+#moderated F-statistic, and log-odds of differential expression by 
+#empirical Bayes moderation of the standard errors towards
+#a common value."
 
 fit<-eBayes(fit)
 
 topTable(fit,coef="Treatmentdrug",adjust="BH")
 
-#Now need to filter for logFC ??
+#Now need to filter for logFC using decideTests??
 
 
 
