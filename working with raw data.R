@@ -204,6 +204,10 @@ targets<-data.frame("CellLine"=c("HVE1","HVE2","HVE3",
                     "Treatment"=c("control","control","control",
                                   "drug","drug","drug"))
 
+#alternatively
+
+
+
 #using the targets frame, make a design matrix that accounts for
 #pairing within Cell lines (i.e. HVE1 dose=0 and HVE1 dose=500 
 #go together). see limma guide pg 42
@@ -230,5 +234,5 @@ topTable(fit,coef="Treatmentdrug",adjust="BH")
 
 #Now need to filter for logFC using decideTests??
 
-
+d<-decideTests(fit, adjust.method="BH",method="hierarchical",lfc=-1)
 
