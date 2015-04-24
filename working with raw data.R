@@ -188,6 +188,8 @@ dim(dataMatrixSDfilter)[1]
 ################ FIT MODEL ################################
 #Just looking at day14 dose 500 (and controls)
 load(dataMatrixSDfilter)
+library(limma)
+library(genefilter)
 #select columns with day 14 data 
 dose500day14Data<-dataMatrixSDfilter[,c("HVE_A4", "HVE_A8","HVE_A12",
                                    "HVE_C4", "HVE_C8","HVE_C12")]
