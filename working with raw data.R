@@ -5,7 +5,8 @@
 require(dplyr)
 library(lumi)
 library(limma)
-setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
+library(dplyr)
+setwd("J:\MacLabUsers\Claire\Projects\HVE-microarray\microarrayData")
 #LMF sent FinalReport_exvivoTNF_HVE_032615.txt which is raw
 #data with control PROBE profile data rather than control
 #GENE profile data, which we tried before and couldn't get lumi
@@ -187,9 +188,11 @@ dim(dataMatrixSDfilter)[1]
 
 ################ FIT MODEL ################################
 #Just looking at day14 dose 500 (and controls)
-load(dataMatrixSDfilter)
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
+load("dataMatrixSDfilter.Rda")
 library(limma)
 library(genefilter)
+
 #select columns with day 14 data 
 dose500day14Data<-dataMatrixSDfilter[,c("HVE_A4", "HVE_A8","HVE_A12",
                                    "HVE_C4", "HVE_C8","HVE_C12")]
@@ -204,8 +207,6 @@ targets<-data.frame("CellLine"=c("HVE1","HVE2","HVE3",
                     "Treatment"=c("control","control","control",
                                   "drug","drug","drug"))
 
-#alternatively
-
 
 
 #using the targets frame, make a design matrix that accounts for
@@ -216,9 +217,8 @@ CellLine<-factor(targets$CellLine, levels=c("HVE1","HVE2","HVE3"))
 Treatment<-factor(targets$Treatment, levels=c("control","drug"))
 
 #make the design matrix
-design<-model.matrix(~0 + CellLine + Treatment)
+design<-model.matrix(~CellLine + Treatment)
 
-#Do I need a contrasts matrix?
 
 #fit the model using the design matrix and the data
 fit<-lmFit(dose500day14Data,design)
@@ -230,9 +230,71 @@ fit<-lmFit(dose500day14Data,design)
 
 fit<-eBayes(fit)
 
-topTable(fit,coef="Treatmentdrug",adjust="BH")
+#generate a top table from the treatment data with BH adj pvalues
+#give all entries (so as many rows as are in fit)
+topTable500day14<-topTable(fit,coef="Treatmentdrug",adjust="BH", number = nrow(fit))
 
-#Now need to filter for logFC using decideTests??
 
-d<-decideTests(fit, adjust.method="BH",method="hierarchical",lfc=-1)
+#make the entrez ids an actual column, not just the rownames
+topTable500day14$Probe<-rownames(topTable500day14)
+#remove the rownames "column"
+rownames(topTable500day14)<-NULL
+
+
+#filter for |logFC|>=0.5 and adj p <=0.05
+filteredTT500day14<-topTable500day14%>%
+  filter(logFC>=0.5 | logFC<=-0.5)%>%
+  filter(adj.P.Val <= 0.05)
+
+
+
+
+#Lamar's cyber T results (after doing ORA)
+CyberT<-read.csv("J:\\MacLabUsers\\Claire\\Projects\\HVE-microarray\\differentiallyExpressedGenes\\ex_vivo_HVE_Tenofovir_Summary_results.csv")
+
+save(CyberT, file = "LMF CyberT Analysis.Rda")
+
+filteredTT500day14$Probe<-as.integer(filteredTT500day14$Probe)
+CyberT$Probe.ID<-as.integer(CyberT$Probe.ID)
+
+
+#any overlaps?
+sum(CyberT$Probe.ID %in%filteredTT500day14$Probe)
+#62
+
+#First remove all but the summary columns and probes that overlap
+
+
+######################### You need to do long vector %in% shorter vector or else you get
+######################### a zillion rows for some reason
+# sum(filteredTT500day14$Probe %in% CyberT$Probe.ID) = 62 BUT
+### This: CyberT[filteredTT500day14$Probe %in% CyberT$Probe.ID,c(1,40)]
+##### Give you 6838 observations, not 62
+
+#subset for just the overlapping probes and select probe.id and day 14 dose 500
+CyberTshort<-CyberT[CyberT$Probe.ID%in% filteredTT500day14$Probe,
+                    c(1,40)]
+
+#so 62 of my 71 probes (not ORA analyzed) were present in Cyber T analysis
+
+#remove "FALSE" entries (don't meet logFC and pval cutoffs)
+NoFalseCyberTshort<-filter(CyberTshort,D14.500vNT.DEG.1!="FALSE")
+
+
+#How many probes that passed cutoffs in my analysis (no ORA yet)
+#were also present AND passed cutoffs in CyberT?
+nrow(NoFalseCyberTshort)
+
+#so, comparing what I found for day14 dose 500 to cyberT findings:
+
+overlap_summary<-data.frame("NProbes"=nrow(topTable500day14),
+                            "meet_cutoffs"=nrow(filteredTT500day14),
+                            "present_in_Cyber_T"=nrow(CyberTshort),
+                            "meet_cutoffs_in_Cyber_T"=nrow(NoFalseCyberTshort)
+)
+
+print(overlap_summary)
+
+
+
 
