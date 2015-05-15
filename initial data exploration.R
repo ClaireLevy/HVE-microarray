@@ -217,7 +217,7 @@ source("subsetToOverlappingGoTerms.R")
 ###############################################################################
 
 
-################DAVID + Innate data (not1) for dose= 50 UP
+####DAVID + Innate data (not1) for dose = 50 UP
 #DAVID overlaps
 overlapDnot150up <- subsetToOverlappingGoTerms(getAllDavid(50),
                                                "UP", 

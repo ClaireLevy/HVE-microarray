@@ -9,21 +9,25 @@ getAllInnateDB <- function(concentration) {
   require(stringr)
    folder <- "J:/MacLabUsers/Claire/Projects/HVE-microarray/differentiallyExpressedGenes/dose = "
    folder <- paste(folder, concentration, sep = "")
-      
+   #make a list of the files   
    files<-list.files(folder, pattern="^InnateDB")
    
    files <- paste(folder, "/", files, sep = "")
-   
+  
+   #read in all the files in the list. Now have a list of dfs
    data<-lapply(files,read.csv, sep="\t",quote="")
    
-   names(data) <- stringr::str_replace(files, pattern = ".csv", replacement = "")
+   names(data) <- stringr::str_replace(files, pattern = ".csv",
+                                       replacement = "")
    
    #make a list for day and direction 
    dayList<-list(1,1,14,14,4,4,7,7)
    directionList<-list("DOWN","UP")
    
+  #add columns to each df in a list of dfs
    data<-Map(cbind,data,Day=dayList,direction=directionList)
    
+  #rbind all the data frames in the list together
    suppressWarnings(data <- dplyr::rbind_all(data))
   
    data<-dplyr::select(data,-Pathway.p.value..corrected.)
