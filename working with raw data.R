@@ -6,7 +6,7 @@ require(dplyr)
 library(lumi)
 library(limma)
 library(dplyr)
-setwd("J:\MacLabUsers\Claire\Projects\HVE-microarray\microarrayData")
+setwd("J:\\MacLabUsers\\Claire\\Projects\\HVE-microarray\\microarrayData")
 #LMF sent FinalReport_exvivoTNF_HVE_032615.txt which is raw
 #data with control PROBE profile data rather than control
 #GENE profile data, which we tried before and couldn't get lumi
@@ -85,7 +85,7 @@ head(detection(RAWlumi.N.Q))
 #I only want probes where the detection is <0.05 for all 3 donors of dose=0,
 #OR all of dose=50 OR all of dose=500
 
-#select all the such that the columns arranged by dose and then day
+#select all the data such that the columns arranged by dose and then day
 allDays.N.Q<-RAWlumi.N.Q[,c("HVE_A1","HVE_A5","HVE_A9",
                      "HVE_B1","HVE_B5","HVE_B9",
                      "HVE_C1","HVE_C5","HVE_C9",
@@ -149,7 +149,7 @@ print(testLogical<-rowSums(test[,1:3]<0.05)==3|
 
 
 #Now I need to subset the lumibatch to just contain those TRUE probes.
-#To do that, I pass this logical vector to the lumiBatch to
+#To do that, I pass this logical vector to the lumiBatch 
 # which subsets the lumiBatch to contain only the probes that are TRUE.
 expressed<-allDays.N.Q[expressedLogical,]
 
@@ -187,68 +187,61 @@ dim(dataMatrixSDfilter)[1]
 
 
 ################ FIT MODEL ################################
-#Just looking at day14 dose 500 (and controls)
+
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
 load("dataMatrixSDfilter.Rda")
 library(limma)
 library(genefilter)
 
-#select columns with day 14 data 
-dose500day14Data<-dataMatrixSDfilter[,c("HVE_A4", "HVE_A8","HVE_A12",
-                                   "HVE_C4", "HVE_C8","HVE_C12")]
 
-#making a design matrix based on limma vignette pg 42
-
-
-#set up the targets frame, making sure the sample order
-#is the same as in the data (3 controls, 3 treatments)
-targets<-data.frame("CellLine"=c("HVE1","HVE2","HVE3",
-                                 "HVE1","HVE2","HVE3"),
-                    "Treatment"=c("control","control","control",
-                                  "drug","drug","drug"))
+#sample key has sample information incl a "Group" column
+#which assigns a number to a day + treatment + paired control (8)
+#ex) day 1+dose 50+day1 no drug = group1
+#day 1 is groups 1&2 (dose 50 then 500), day 2 is groups 3&4 etc
 
 
+SampleKey<-read.csv("SampleKey.csv",stringsAsFactors=FALSE)
 
-#using the targets frame, make a design matrix that accounts for
-#pairing within Cell lines (i.e. HVE1 dose=0 and HVE1 dose=500 
-#go together). see limma guide pg 42
+#Function to select a particular group from the data set
 
-CellLine<-factor(targets$CellLine, levels=c("HVE1","HVE2","HVE3"))
-Treatment<-factor(targets$Treatment, levels=c("control","drug"))
+SelectDataGroup<-function(Group){
+  SampleKey[SampleKey$Group == Group,]
+  dataMatrixSDfilter[,x$SampleName]
+}
 
-#make the design matrix
-design<-model.matrix(~CellLine + Treatment)
+# I want a list consisting of data frames for each group
+#Here is a list of the groups
+GroupList<-list(1,2,3,4,5,6,7,8)
+#pass the list to the SelectDataGroup function
+GroupDataframes<-lapply(GroupList,FUN=SelectDataGroup)
 
 
-#fit the model using the design matrix and the data
-fit<-lmFit(dose500day14Data,design)
+#This file has the code for making the design matrix and targets df
+source("DesignMatrixAndTargets.R")
+
+#fit the model using the design matrix and the data selected above
+fit<-lapply(GroupDataframes,FUN=lmFit,design = design)
+
 
 #"Given a microarray linear model fit, compute moderated t-statistics,
 #moderated F-statistic, and log-odds of differential expression by 
 #empirical Bayes moderation of the standard errors towards
 #a common value."
 
-fit<-eBayes(fit)
+fit<-lapply(fit, FUN=eBayes)
 
 #generate a top table from the treatment data with BH adj pvalues
 #give all entries (so as many rows as are in fit)
-topTable500day14<-topTable(fit,coef="Treatmentdrug",adjust="BH", number = nrow(fit))
 
+TT<-lapply(fit,FUN=topTable,coef="Treatmentdrug",
+           adjust="BH", number = 10380)
 
-#make the entrez ids an actual column, not just the rownames
-topTable500day14$Probe<-rownames(topTable500day14)
-#remove the rownames "column"
-rownames(topTable500day14)<-NULL
+#filter for logFC
+LogFCfiltered<-lapply(TT,subset,logFC>=0.5 | logFC<=-0.5 )
+#filter for adj p value
+PValLogFCfiltered<-lapply(filtered,subset,adj.P.Val <=0.05)
 
-
-#filter for |logFC|>=0.5 and adj p <=0.05
-filteredTT500day14<-topTable500day14%>%
-  filter(logFC>=0.5 | logFC<=-0.5)%>%
-  filter(adj.P.Val <= 0.05)
-
-
-
-
+##############################################################
 #Lamar's cyber T results (after doing ORA)
 CyberT<-read.csv("J:\\MacLabUsers\\Claire\\Projects\\HVE-microarray\\differentiallyExpressedGenes\\ex_vivo_HVE_Tenofovir_Summary_results.csv")
 
@@ -259,7 +252,7 @@ CyberT$Probe.ID<-as.integer(CyberT$Probe.ID)
 
 
 #any overlaps?
-sum(CyberT$Probe.ID %in%filteredTT500day14$Probe)
+sum(CyberT$Probe.ID %in%)
 #62
 
 #First remove all but the summary columns and probes that overlap
@@ -292,9 +285,37 @@ overlap_summary<-data.frame("NProbes"=nrow(topTable500day14),
                             "present_in_Cyber_T"=nrow(CyberTshort),
                             "meet_cutoffs_in_Cyber_T"=nrow(NoFalseCyberTshort)
 )
+###############################try the same thing with day14 dose= 50
 
-print(overlap_summary)
+#select columns with day 14 dose = 50 data 
+dose50day14Data<-dataMatrixSDfilter[,c("HVE_A4", "HVE_A8","HVE_A12",
+                                        "HVE_B4", "HVE_B8","HVE_B12")]
 
 
+#fit the model using the design matrix and the data
+fit<-lmFit(dose50day14Data,design)
+fit<-eBayes(fit)
 
+#generate a top table from the treatment data with BH adj pvalues
+#give all entries (so as many rows as are in fit)
+topTable50day14<-topTable(fit,coef="Treatmentdrug",adjust="BH", number = nrow(fit))
+
+
+#make the probe ids an actual column, not just the rownames
+topTable50day14$Probe<-rownames(topTable50day14)
+#remove the rownames "column"
+rownames(topTable50day14)<-NULL
+
+
+#filter for |logFC|>=0.5 and adj p <=0.05
+filteredTT50day14<-topTable50day14%>%
+  filter(logFC>=0.5 | logFC<=-0.5)%>%
+  filter(adj.P.Val <= 0.05)
+
+CyberTshort2<-CyberT[CyberT$Probe.ID%in% filteredTT50day14$Probe,
+                    c(1,36)]
+
+
+#remove "FALSE" entries (don't meet logFC and pval cutoffs)
+NoFalseCyberTshort2<-filter(CyberTshort2,D14.50vNT.DEG!="FALSE")
 
