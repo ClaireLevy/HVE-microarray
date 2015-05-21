@@ -205,7 +205,7 @@ SampleKey<-read.csv("SampleKey.csv",stringsAsFactors=FALSE)
 #Function to select a particular group from the data set
 
 SelectDataGroup<-function(Group){
-  SampleKey[SampleKey$Group == Group,]
+  x<-SampleKey[SampleKey$Group == Group,]
   dataMatrixSDfilter[,x$SampleName]
 }
 
@@ -239,7 +239,9 @@ TT<-lapply(fit,FUN=topTable,coef="Treatmentdrug",
 #filter for logFC
 LogFCfiltered<-lapply(TT,subset,logFC>=0.5 | logFC<=-0.5 )
 #filter for adj p value
-PValLogFCfiltered<-lapply(filtered,subset,adj.P.Val <=0.05)
+PValLogFCfiltered<-lapply(LogFCfiltered,subset,adj.P.Val <=0.05)
+
+save(PValLogFCfiltered,file = "PValLogFCfiltered.Rda")
 
 ##############################################################
 #Lamar's cyber T results (after doing ORA)
