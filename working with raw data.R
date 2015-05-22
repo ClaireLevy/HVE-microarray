@@ -35,23 +35,6 @@ RAW.lumi =lumiR(RAW,
 RAW.lumi
 
 
-summary(RAW.lumi,"QC")
-#some QC plots
-
-preNormDensity<-density(RAW.lumi)
-#looks like HVE_A1 is lower than most others
-
-preNormRevCDF<-plotCDF(RAW.lumi,reverse=TRUE)
-#CDF is the probability of a getting an intensity <= to x
-#A PDF answers the question: "How common are samples at exactly this value?" 
-#A CDF answers the question "How common are samples that are less than or equal to this value?"
-#The CDF is the integral of the PDF.
-
-
-preNormBox<-boxplot(RAW.lumi)
-#this doesn't really mean anything to me except that some cluster
-#together and others don't.
-plotSampleRelation(RAW.lumi, method="mds")
 
 #################### NORMALISATION AND QC ###########################
 
@@ -67,18 +50,6 @@ RAWlumi.N = lumiN(RAWlumi.T, method = "rsn")
 #QC of normalized data
 RAWlumi.N.Q = lumiQ(RAWlumi.N, detectionTh = 0.05)
 summary(RAWlumi.N.Q,"QC")#mean expression is much more uniform
-
-
-
-#check the plots after normalization and transformation
-#all more uniform
-NormDensity<-density(RAWlumi.N.Q)
-NormRevCDF<-plotCDF(RAWlumi.N.Q, reverse=TRUE)
-NormBox<-boxplot(RAWlumi.N.Q)
-
-plotSampleRelation(RAWlumi.N.Q, method="mds")
-
-head(detection(RAWlumi.N.Q))
 
 ########################## FILTER DETECTION ###############################
 
@@ -136,16 +107,6 @@ expressedLogical<-rowSums(detection(allDays.N.Q[,1:3]) <0.05)==3|
   rowSums(detection(allDays.N.Q[,31:33]) <0.05) ==3|
   rowSums(detection(allDays.N.Q[,34:36]) <0.05) ==3
   
-#test this code by making up a matrix where some rows meet the condition
-#that 3 consecutive columns are all<0.05 and some dont.
-test<-read.csv("testMatrix.csv")
-test
-#The resulting vector should be T, T, T ,F,T,F,F
-print(testLogical<-rowSums(test[,1:3]<0.05)==3|
-  rowSums(test[,4:6]<0.05)==3|
-  rowSums(test[,7:9]<0.05)==3)
-#looks ok
-
 
 
 #Now I need to subset the lumibatch to just contain those TRUE probes.
@@ -189,49 +150,51 @@ dim(dataMatrixSDfilter)[1]
 ################ FIT MODEL ################################
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
-load("dataMatrixSDfilter.Rda")
+
 library(limma)
 library(genefilter)
+library(dplyr)
 
+load("dataMatrixSDfilter.Rda")# data filtered by SD and detection
 
 #sample key has sample information incl a "Group" column
 #which assigns a number to a day + treatment + paired control (8)
-#ex) day 1+dose 50+day1 no drug = group1
-#day 1 is groups 1&2 (dose 50 then 500), day 2 is groups 3&4 etc
-
+##GroupDataframes.Rda is a list of dataframes. There is one data frame
+# for each sample group. A group is: day + treatment + paired control
+#Group 1 is day 1, dose = 50 and dose =0
+#Group 2 is day 1 dose = 500 and dose = 0
+# etc up to group 8 (day 14, dose =500 and dose = 0)
 
 SampleKey<-read.csv("SampleKey.csv",stringsAsFactors=FALSE)
 
 #Function to select a particular group from the data set
-
 SelectDataGroup<-function(Group){
   x<-SampleKey[SampleKey$Group == Group,]
   dataMatrixSDfilter[,x$SampleName]
 }
 
+
 # I want a list consisting of data frames for each group
 #Here is a list of the groups
 GroupList<-list(1,2,3,4,5,6,7,8)
+
 #pass the list to the SelectDataGroup function
 GroupDataframes<-lapply(GroupList,FUN=SelectDataGroup)
+
+
 
 
 #This file has the code for making the design matrix and targets df
 source("DesignMatrixAndTargets.R")
 
-#fit the model using the design matrix and the data selected above
+#fit the model using the design matrix and the data frames for each
+#group
 fit<-lapply(GroupDataframes,FUN=lmFit,design = design)
-
-
-#"Given a microarray linear model fit, compute moderated t-statistics,
-#moderated F-statistic, and log-odds of differential expression by 
-#empirical Bayes moderation of the standard errors towards
-#a common value."
 
 fit<-lapply(fit, FUN=eBayes)
 
 #generate a top table from the treatment data with BH adj pvalues
-#give all entries (so as many rows as are in fit)
+#give all entries (so, as many rows as are in fit)
 
 TT<-lapply(fit,FUN=topTable,coef="Treatmentdrug",
            adjust="BH", number = 10380)
@@ -241,36 +204,31 @@ LogFCfiltered<-lapply(TT,subset,logFC>=0.5 | logFC<=-0.5 )
 #filter for adj p value
 PValLogFCfiltered<-lapply(LogFCfiltered,subset,adj.P.Val <=0.05)
 
-save(PValLogFCfiltered,file = "PValLogFCfiltered.Rda")
+
 
 ##############################################################
 #Lamar's cyber T results (after doing ORA)
-CyberT<-read.csv("J:\\MacLabUsers\\Claire\\Projects\\HVE-microarray\\differentiallyExpressedGenes\\ex_vivo_HVE_Tenofovir_Summary_results.csv")
+load("LMF CyberT Analysis.Rda")
 
-save(CyberT, file = "LMF CyberT Analysis.Rda")
+#let's look at group 8 (day 14 dose = 500 and dose =0)
 
-filteredTT500day14$Probe<-as.integer(filteredTT500day14$Probe)
-CyberT$Probe.ID<-as.integer(CyberT$Probe.ID)
+group8topTable<-PValLogFCfiltered[[8]]
 
+#make the row names into a column called Probe.ID
 
-#any overlaps?
-sum(CyberT$Probe.ID %in%)
-#62
+group8topTable$Probe.ID<-rownames(group8topTable)
 
-#First remove all but the summary columns and probes that overlap
+rownames(group8topTable)<-NULL
+#put in same format as CyberT
+group8topTable$Probe.ID<-as.integer(group8topTable$Probe)
 
-
-######################### You need to do long vector %in% shorter vector or else you get
-######################### a zillion rows for some reason
-# sum(filteredTT500day14$Probe %in% CyberT$Probe.ID) = 62 BUT
-### This: CyberT[filteredTT500day14$Probe %in% CyberT$Probe.ID,c(1,40)]
-##### Give you 6838 observations, not 62
 
 #subset for just the overlapping probes and select probe.id and day 14 dose 500
-CyberTshort<-CyberT[CyberT$Probe.ID%in% filteredTT500day14$Probe,
+CyberTshort<-CyberT[CyberT$Probe.ID%in% group8topTable$Probe.ID,
                     c(1,40)]
 
-#so 62 of my 71 probes (not ORA analyzed) were present in Cyber T analysis
+#so 62 of my 71 probes (not ORA analyzed) were present in Cyber T 
+#analysis for day 14
 
 #remove "FALSE" entries (don't meet logFC and pval cutoffs)
 NoFalseCyberTshort<-filter(CyberTshort,D14.500vNT.DEG.1!="FALSE")
@@ -282,42 +240,10 @@ nrow(NoFalseCyberTshort)
 
 #so, comparing what I found for day14 dose 500 to cyberT findings:
 
-overlap_summary<-data.frame("NProbes"=nrow(topTable500day14),
-                            "meet_cutoffs"=nrow(filteredTT500day14),
+overlap_summary<-data.frame("Number_of_Probes"=nrow(TT[[8]]),
+                            "meet_cutoffs"=nrow(group8topTable),
                             "present_in_Cyber_T"=nrow(CyberTshort),
                             "meet_cutoffs_in_Cyber_T"=nrow(NoFalseCyberTshort)
 )
-###############################try the same thing with day14 dose= 50
 
-#select columns with day 14 dose = 50 data 
-dose50day14Data<-dataMatrixSDfilter[,c("HVE_A4", "HVE_A8","HVE_A12",
-                                        "HVE_B4", "HVE_B8","HVE_B12")]
-
-
-#fit the model using the design matrix and the data
-fit<-lmFit(dose50day14Data,design)
-fit<-eBayes(fit)
-
-#generate a top table from the treatment data with BH adj pvalues
-#give all entries (so as many rows as are in fit)
-topTable50day14<-topTable(fit,coef="Treatmentdrug",adjust="BH", number = nrow(fit))
-
-
-#make the probe ids an actual column, not just the rownames
-topTable50day14$Probe<-rownames(topTable50day14)
-#remove the rownames "column"
-rownames(topTable50day14)<-NULL
-
-
-#filter for |logFC|>=0.5 and adj p <=0.05
-filteredTT50day14<-topTable50day14%>%
-  filter(logFC>=0.5 | logFC<=-0.5)%>%
-  filter(adj.P.Val <= 0.05)
-
-CyberTshort2<-CyberT[CyberT$Probe.ID%in% filteredTT50day14$Probe,
-                    c(1,36)]
-
-
-#remove "FALSE" entries (don't meet logFC and pval cutoffs)
-NoFalseCyberTshort2<-filter(CyberTshort2,D14.50vNT.DEG!="FALSE")
 
