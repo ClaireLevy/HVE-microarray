@@ -122,11 +122,11 @@ dims(RAWlumi.N.Q)-dims(expressed)
 
 
 ############################ FILTER SD  ##################
-dataMatrix<-exprs(expressed)
-hist(dataMatrix, breaks=50)
+
 
 library(limma)
 library(genefilter)
+
 
 #calculate the row standard deviations
 rowSdsMatrix<-rowSds(dataMatrix)
@@ -154,7 +154,8 @@ setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
 library(limma)
 library(genefilter)
 library(dplyr)
-
+library(ggplot2)
+library(stringr)
 load("dataMatrixSDfilter.Rda")# data filtered by SD and detection
 
 #sample key has sample information incl a "Group" column
@@ -195,9 +196,9 @@ fit<-lapply(fit, FUN=eBayes)
 
 #generate a top table from the treatment data with BH adj pvalues
 #give all entries (so, as many rows as are in fit)
-
+#"inf" means show all entries
 TT<-lapply(fit,FUN=topTable,coef="Treatmentdrug",
-           adjust="BH", number = 10380)
+           adjust="BH", number = "inf")
 
 #filter for logFC
 LogFCfiltered<-lapply(TT,subset,logFC>=0.5 | logFC<=-0.5 )
@@ -212,38 +213,97 @@ load("LMF CyberT Analysis.Rda")
 
 #let's look at group 8 (day 14 dose = 500 and dose =0)
 
-group8topTable<-PValLogFCfiltered[[8]]
+group8TT<-PValLogFCfiltered[[8]]
 
-#make the row names into a column called Probe.ID
+#make the row names into a column called Probe.limma
 
-group8topTable$Probe.ID<-rownames(group8topTable)
+group8TT$Probe.limma<-rownames(group8TT)
 
-rownames(group8topTable)<-NULL
+rownames(group8TT)<-NULL
 #put in same format as CyberT
-group8topTable$Probe.ID<-as.integer(group8topTable$Probe)
+group8TT$Probe.limma<-as.integer(group8TT$Probe)
 
+#how many non-false probes did Lamar find for this day?
+#filter for day14 dose 500 non=false and select probes and p vals
 
-#subset for just the overlapping probes and select probe.id and day 14 dose 500
-CyberTshort<-CyberT[CyberT$Probe.ID%in% group8topTable$Probe.ID,
-                    c(1,40)]
+NoFalseCyberT<-CyberT%>%
+  filter(D14.500vNT.DEG.1!=FALSE)%>%
+  select(Probe.ID,FDR.Adj.p.val.D14.500vNT )
 
-#so 62 of my 71 probes (not ORA analyzed) were present in Cyber T 
+length(NoFalseCyberT$Probe.ID)
+#4789, so 4727 more than I got.
+
+#subset for just the overlapping probes 
+NoFalseCyberTshort<-NoFalseCyberT[NoFalseCyberT$Probe.ID%in% group8TT$Probe.limma,]
+
+group8TTshort<-group8TT[group8TT$Probe.limma %in% NoFalseCyberT$Probe.ID,]
+#so 46 of my 71 probes were present in Cyber T 
 #analysis for day 14
-
-#remove "FALSE" entries (don't meet logFC and pval cutoffs)
-NoFalseCyberTshort<-filter(CyberTshort,D14.500vNT.DEG.1!="FALSE")
-
-
-#How many probes that passed cutoffs in my analysis (no ORA yet)
-#were also present AND passed cutoffs in CyberT?
-nrow(NoFalseCyberTshort)
 
 #so, comparing what I found for day14 dose 500 to cyberT findings:
 
 overlap_summary<-data.frame("Number_of_Probes"=nrow(TT[[8]]),
-                            "meet_cutoffs"=nrow(group8topTable),
-                            "present_in_Cyber_T"=nrow(CyberTshort),
-                            "meet_cutoffs_in_Cyber_T"=nrow(NoFalseCyberTshort)
+                            "meet_cutoffs"=nrow(group8TT),
+                            "also_found_in CyberT"=nrow(NoFalseCyberTshort)
 )
 
+#What about the order of the probes?
+#make a df with the data from cyberT and limma that overlaps, arranged
+# by p value
 
+overlapLimma<-group8TTshort%>%
+  select(Probe.limma,adj.P.Val)%>%
+  mutate(Analysis = rep("Limma", times = nrow(group8TTshort)))%>%
+  arrange(adj.P.Val)%>%
+  mutate(rankingL = seq(1:nrow(group8TTshort)))%>%
+  arrange(Probe.limma)
+
+colnames(overlapLimma)<-c("Probe","Pval","Analysis","ranking")
+overlapCyberT<-NoFalseCyberTshort%>%
+  mutate(Analysis = rep("CyberT", times = nrow(NoFalseCyberTshort)))%>%
+  arrange(FDR.Adj.p.val.D14.500vNT)%>%
+  mutate(rankingC = seq(1:nrow(NoFalseCyberTshort)))%>%
+  arrange(Probe.ID)
+
+
+
+colnames(overlapCyberT)<-c("Probe","Pval","Analysis","ranking")
+
+
+
+
+together<-rbind(overlapCyberT,overlapLimma)
+
+together$Probe<-as.character(together$Probe)
+
+ggplot(together, aes(Probe, Pval))+
+  geom_point(aes(color = Analysis, size=ranking))
+
+#What about the difference between the ranks?
+
+diff<-data.frame("rankDiff"=overlapCyberT$ranking - overlapLimma$ranking,
+                 "Probe" = overlapLimma$Probe)
+
+diff$Probe<-as.character(diff$Probe)
+
+
+ggplot(diff,aes(Probe,rankDiff))+
+  geom_point(aes(), size=4)
+
+#What about the other days/doses?
+# subsetting CyberT data
+
+selectCyberT<-function(day.dose){
+x<-CyberT[,str_detect(colnames(CyberT),day.dose)]#extract using day and dose
+y<-cbind(x[,3:4],CyberT$Probe.ID)#add the probe column
+names(y)<-c("PVal","Direction","Probe.ID") #change names so all dfs have same
+y[y$Direction!=FALSE,]#remove FALSE probes
+}
+
+dayDoseList<-list("D1.50v","D1.500","D4.50v","D4.500","D7.50v","D7.500",
+                  "D14.50v","D14.500")
+CyberTDfs<-lapply(dayDoseList, FUN=selectCyberT)
+
+nrow(CyberTDfs[[1]])
+lapply(CyberTDfs,FUN=nrow)
+  
