@@ -127,6 +127,7 @@ dims(RAWlumi.N.Q)-dims(expressed)
 library(limma)
 library(genefilter)
 
+dataMatrix <- exprs(expressed)
 
 #calculate the row standard deviations
 rowSdsMatrix<-rowSds(dataMatrix)
@@ -147,7 +148,7 @@ dim(dataMatrixSDfilter)[1]
 #10380 left
 
 
-################ FIT MODEL ################################
+################ FIT MODEL TO ALL DATA GROUPS ################################
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
 
@@ -166,14 +167,15 @@ load("dataMatrixSDfilter.Rda")# data filtered by SD and detection
 #Group 2 is day 1 dose = 500 and dose = 0
 # etc up to group 8 (day 14, dose =500 and dose = 0)
 
+
+###################### SUBSET LIMMA ################################
 SampleKey<-read.csv("SampleKey.csv",stringsAsFactors=FALSE)
 
-#Function to select a particular group from the data set
+#Function to select a particular group from the limma data set
 SelectDataGroup<-function(Group){
   x<-SampleKey[SampleKey$Group == Group,]
   dataMatrixSDfilter[,x$SampleName]
 }
-
 
 # I want a list consisting of data frames for each group
 #Here is a list of the groups
@@ -183,10 +185,11 @@ GroupList<-list(1,2,3,4,5,6,7,8)
 GroupDataframes<-lapply(GroupList,FUN=SelectDataGroup)
 
 
-
-
 #This file has the code for making the design matrix and targets df
 source("DesignMatrixAndTargets.R")
+
+
+########################### FIT LIMMA ################################
 
 #fit the model using the design matrix and the data frames for each
 #group
@@ -196,92 +199,125 @@ fit<-lapply(fit, FUN=eBayes)
 
 #generate a top table from the treatment data with BH adj pvalues
 #give all entries (so, as many rows as are in fit)
-#"inf" means show all entries
+
 TT<-lapply(fit,FUN=topTable,coef="Treatmentdrug",
-           adjust="BH", number = "inf")
+           adjust="BH", number = 10380)
+
+######################## FILTER FOR LOG FC AND PVAL ###############
 
 #filter for logFC
 LogFCfiltered<-lapply(TT,subset,logFC>=0.5 | logFC<=-0.5 )
+
 #filter for adj p value
 PValLogFCfiltered<-lapply(LogFCfiltered,subset,adj.P.Val <=0.05)
 
 
+#change the rowsnames(probes) to an actual column
 
-##############################################################
-#Lamar's cyber T results (after doing ORA)
+PValLogFCfiltered<-lapply(GroupList, function(df){
+  c<-PValLogFCfiltered[[df]]
+  c$Probe.ID<-rownames(c)
+  rownames(c)<-NULL
+  return(c)
+  
+})
+
+
+###################COMPARING WITH CYBER T RESULTS ###########################################
+
+#Lamar's cyber T results 
 load("LMF CyberT Analysis.Rda")
 
-#let's look at group 8 (day 14 dose = 500 and dose =0)
+#Where do limma nonfasle probes overlap with CyberT nonfalse probes?
 
-group8TT<-PValLogFCfiltered[[8]]
 
-#make the row names into a column called Probe.limma
 
-group8TT$Probe.limma<-rownames(group8TT)
+######################## EXTRACT AND SUBSET CYBERT NON FALSE #################
+#function for subsetting nonFalse CyberT data
 
-rownames(group8TT)<-NULL
-#put in same format as CyberT
-group8TT$Probe.limma<-as.integer(group8TT$Probe)
+selectCyberT<-function(day.dose){
+  x<-CyberT[,str_detect(colnames(CyberT),day.dose)]#extract using day and dose
+  
+  y<-cbind(x[,3:4],CyberT$Probe.ID)#add the probe column
+  
+  names(y)<-c("PVal","Direction","Probe.ID") #change names so all dfs have same
+  
+  y[y$Direction!=FALSE,]#remove FALSE probes
+}
+#list of the parts of the column names I want to capture with str_detect
 
-#how many non-false probes did Lamar find for this day?
-#filter for day14 dose 500 non=false and select probes and p vals
+dayDoseList<-list("D1.50v","D1.500","D4.50v","D4.500","D7.50v","D7.500",
+                  "D14.50v","D14.500")
 
-NoFalseCyberT<-CyberT%>%
-  filter(D14.500vNT.DEG.1!=FALSE)%>%
-  select(Probe.ID,FDR.Adj.p.val.D14.500vNT )
+#apply the dayDose list with the function
+CyberTDfs<-lapply(dayDoseList, FUN=selectCyberT)
 
-length(NoFalseCyberT$Probe.ID)
-#4789, so 4727 more than I got.
+#how many non-falses are there?
+lapply(CyberTDfs,FUN=nrow)
 
-#subset for just the overlapping probes 
-NoFalseCyberTshort<-NoFalseCyberT[NoFalseCyberT$Probe.ID%in% group8TT$Probe.limma,]
 
-group8TTshort<-group8TT[group8TT$Probe.limma %in% NoFalseCyberT$Probe.ID,]
-#so 46 of my 71 probes were present in Cyber T 
-#analysis for day 14
+############################ FIND OVERLAPS ##########################
+findOverlaps<-function(df){
+  C<-CyberTDfs[[df]]
+  L<-PValLogFCfiltered[[df]]
+ list(C[C$Probe.ID %in% L$Probe.ID,],L[L$Probe.ID %in% C$Probe.ID,])
+}
 
-#so, comparing what I found for day14 dose 500 to cyberT findings:
 
-overlap_summary<-data.frame("Number_of_Probes"=nrow(TT[[8]]),
-                            "meet_cutoffs"=nrow(group8TT),
-                            "also_found_in CyberT"=nrow(NoFalseCyberTshort)
-)
+#overlaps is a list with 8 elements one for each data group
+# each data group has 2 elements, subset of Cyber that overlaps with Limma
+# and subset of limma that overlaps with Cyber
+overlaps<-lapply(GroupList,FUN = findOverlaps)
 
-#What about the order of the probes?
-#make a df with the data from cyberT and limma that overlaps, arranged
-# by p value
+#extract the first element of the 8th element
+#overlaps[[8]][[1]]
 
-overlapLimma<-group8TTshort%>%
-  select(Probe.limma,adj.P.Val)%>%
-  mutate(Analysis = rep("Limma", times = nrow(group8TTshort)))%>%
+
+
+
+
+######################## LOOKING AT GROUP 8 ONLY ##############
+limma8<-overlaps[[8]][[2]]
+cyber8<-overlaps[[8]][[1]]
+
+
+
+
+overlapLimma<-limma8%>%
+  select(Probe.ID,adj.P.Val)%>%
+  mutate(Analysis = rep("Limma", times = nrow(limma8)))%>%
   arrange(adj.P.Val)%>%
-  mutate(rankingL = seq(1:nrow(group8TTshort)))%>%
-  arrange(Probe.limma)
-
-colnames(overlapLimma)<-c("Probe","Pval","Analysis","ranking")
-overlapCyberT<-NoFalseCyberTshort%>%
-  mutate(Analysis = rep("CyberT", times = nrow(NoFalseCyberTshort)))%>%
-  arrange(FDR.Adj.p.val.D14.500vNT)%>%
-  mutate(rankingC = seq(1:nrow(NoFalseCyberTshort)))%>%
+  mutate(rankingL = seq(1:nrow(limma8)))%>%
   arrange(Probe.ID)
 
+colnames(overlapLimma)<-c("Probe","Pval","Analysis","ranking")
+
+overlapCyber<-cyber8%>%
+  mutate(Analysis = rep("CyberT", times = nrow(cyber8)))%>%
+  arrange(PVal)%>%
+  mutate(rankingC = seq(1:nrow(cyber8)))%>%
+  arrange(Probe.ID)%>%
+  select(Probe.ID,PVal,Analysis,rankingC)
+  
 
 
-colnames(overlapCyberT)<-c("Probe","Pval","Analysis","ranking")
 
+colnames(overlapCyber)<-c("Probe","Pval","Analysis","ranking")
 
-
-
-together<-rbind(overlapCyberT,overlapLimma)
+together<-rbind(overlapCyber,overlapLimma)
 
 together$Probe<-as.character(together$Probe)
 
 ggplot(together, aes(Probe, Pval))+
   geom_point(aes(color = Analysis, size=ranking))
 
+
+
+
+
 #What about the difference between the ranks?
 
-diff<-data.frame("rankDiff"=overlapCyberT$ranking - overlapLimma$ranking,
+diff<-data.frame("rankDiff"=overlapCyber$ranking - overlapLimma$ranking,
                  "Probe" = overlapLimma$Probe)
 
 diff$Probe<-as.character(diff$Probe)
@@ -289,21 +325,3 @@ diff$Probe<-as.character(diff$Probe)
 
 ggplot(diff,aes(Probe,rankDiff))+
   geom_point(aes(), size=4)
-
-#What about the other days/doses?
-# subsetting CyberT data
-
-selectCyberT<-function(day.dose){
-x<-CyberT[,str_detect(colnames(CyberT),day.dose)]#extract using day and dose
-y<-cbind(x[,3:4],CyberT$Probe.ID)#add the probe column
-names(y)<-c("PVal","Direction","Probe.ID") #change names so all dfs have same
-y[y$Direction!=FALSE,]#remove FALSE probes
-}
-
-dayDoseList<-list("D1.50v","D1.500","D4.50v","D4.500","D7.50v","D7.500",
-                  "D14.50v","D14.500")
-CyberTDfs<-lapply(dayDoseList, FUN=selectCyberT)
-
-nrow(CyberTDfs[[1]])
-lapply(CyberTDfs,FUN=nrow)
-  
