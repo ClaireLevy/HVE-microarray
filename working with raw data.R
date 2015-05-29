@@ -281,8 +281,6 @@ limma8<-overlaps[[8]][[2]]
 cyber8<-overlaps[[8]][[1]]
 
 
-
-
 overlapLimma<-limma8%>%
   select(Probe.ID,adj.P.Val)%>%
   mutate(Analysis = rep("Limma", times = nrow(limma8)))%>%
@@ -299,8 +297,6 @@ overlapCyber<-cyber8%>%
   arrange(Probe.ID)%>%
   select(Probe.ID,PVal,Analysis,rankingC)
   
-
-
 
 colnames(overlapCyber)<-c("Probe","Pval","Analysis","ranking")
 
@@ -325,3 +321,10 @@ diff$Probe<-as.character(diff$Probe)
 
 ggplot(diff,aes(Probe,rankDiff))+
   geom_point(aes(), size=4)
+
+
+
+
+
+
+
