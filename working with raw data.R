@@ -105,7 +105,7 @@ expressedLogical<-rowSums(detection(allDays.N.Q[,1:3]) <0.05)==3|
   rowSums(detection(allDays.N.Q[,25:27]) <0.05) ==3|
   rowSums(detection(allDays.N.Q[,28:30]) <0.05) ==3|
   rowSums(detection(allDays.N.Q[,31:33]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,34:36]) <0.05) ==3
+  rowSums(detection(allDays.N.Q[,34:36]) <0.05) ==3)
   
 
 
@@ -169,7 +169,7 @@ load("dataMatrixSDfilter.Rda")# data filtered by SD and detection
 
 
 ###################### SUBSET LIMMA ################################
-SampleKey<-read.csv("SampleKey.csv",stringsAsFactors=FALSE)
+load("SampleKey.Rda")
 
 #Function to select a particular group from the limma data set
 SelectDataGroup<-function(Group){
@@ -222,7 +222,7 @@ PValLogFCfiltered<-lapply(GroupList, function(df){
   
 })
 
-
+lapply(PValLogFCfiltered,FUN=nrow)
 ###################COMPARING WITH CYBER T RESULTS ###########################################
 
 #Lamar's cyber T results 
@@ -234,11 +234,11 @@ load("LMF CyberT Analysis.Rda")
 
 ######################## EXTRACT AND SUBSET CYBERT NON FALSE #################
 #function for subsetting nonFalse CyberT data
-
+library(stringr)
 selectCyberT<-function(day.dose){
   x<-CyberT[,str_detect(colnames(CyberT),day.dose)]#extract using day and dose
   
-  y<-cbind(x[,3:4],CyberT$Probe.ID)#add the probe column
+  y<-cbind(x[,3:4],CyberT$Probe.ID)#include just pval and direction,add the probe column
   
   names(y)<-c("PVal","Direction","Probe.ID") #change names so all dfs have same
   
