@@ -51,10 +51,13 @@ CellLine <- factor(targets$CellLine, levels=c("HVE1", "HVE2", "HVE3"))
 Treatment <- factor(targets$Treatment, levels=c("control", "drug"))
 designB <- model.matrix(~0 + CellLine + Treatment)
 
+# import data, select the files for day 14, 0 and 500 uM, all three cell lines
 library(limma)
 load("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData/dataMatrixSDfilter.Rda")# data filtered by SD and detection
+# order: d14 ctrl hve1 hve2 hve3; d14 tfv hve1 hve2 hve3
 dataA <- dataMatrixSDfilter[ , c("HVE_A4", "HVE_A8", "HVE_A12", 
    "HVE_C4", "HVE_C8", "HVE_C12")]
+# order: d14 hve1 ctrl tfv; hve2 ctrl tfv; hve3 ctrl tfv
 dataB <- dataMatrixSDfilter[ , c("HVE_A4", "HVE_C4", "HVE_A8", 
    "HVE_C8", "HVE_A12", "HVE_C12")]
 
