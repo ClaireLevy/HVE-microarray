@@ -42,9 +42,19 @@ t3<-t3[,c(7,1:6)]
 identical(t,t2) #true
 identical(t2,t3)#true
 
+# structure of example input file
+head(read.csv("Group.1.csv"))
+# Probe   HVE_A1    HVE_A5   HVE_A9   HVE_B1    HVE_B5   HVE_B9
+# 4760377 8.311434  7.931828 8.239210 8.233480  8.019671 8.329865
+# 4050154 9.528693 11.097650 7.634868 9.256283 10.654425 7.602925
+# 3610072 8.186686  9.080132 8.397511 8.363603  8.657692 8.300633
+#   60689 8.008220  8.345514 8.468531 8.064208  8.302465 8.536110
+# 1580504 8.198067  8.302021 7.859298 8.034230  8.290039 7.962794
+# 7650020 8.217213  8.163575 8.470606 8.349379  8.139904 8.314603
+
 #in cyberT http://cybert.ics.uci.edu/pair/
 #normalization = NONE
-#sliding window side = 101
+#sliding window size = 101
 #Bayesian confidence value = 10
 #no post processing
 ####################### READ IN CYBER T RESULTS ####################
@@ -53,7 +63,6 @@ identical(t2,t3)#true
 # R_1 : Ratio column #1 input by user
 # R_2 : Ratio column #2 input by user
 # nR : Number of ratios
-
 
 #There is a column here called EstExpr but CyberT doesn't say what it means
 
@@ -68,18 +77,55 @@ identical(t2,t3)#true
 # Bonferroni : Bonferroni corrected q-values (if multiple hypothesis testing correction is performed)
 # BH : Benjamini & Hochberg corrected q-values (if multiple hypothesis testing correction is performed
 
-   
-x <- lapply(1:8, function(n) {
+data <- lapply(1:8, function(n) {
    data <- read.table(paste("Group", n, "cyber.txt", sep = "."), 
       sep = "\t", header = TRUE)
    data$Group <- n
    data
 })
 
-data <- do.call("rbind", x)
+data <- do.call("rbind", data)
+
+groupKey <- SampleKey %>% 
+   group_by(Group) %>% 
+   summarize(Day = Day[1], 
+      Concentration = paste(Concentration[1], Concentration[4])) 
+data <- merge(data, groupKey)
+
+# logFC from limma analysis gives the same numbers as the meanR from cyber-T
+limmaAnalysis <- lapply(TT, FUN = function(x) {
+   x$Probe <- rownames(x) 
+   x
+})
+limmaAnalysis <- do.call("rbind", limmaAnalysis)
+limmaAnalysis$Group <- rep(1:8, each = 10380)
+limmaAnalysis <- select(limmaAnalysis, logFC, Group, Probe)
+cyberAnalysis <- mutate(data, Probe = Lab_0) %>% select(meanR, Group, Probe)
+
+merged <- merge(limmaAnalysis, cyberAnalysis, by = c("Probe", "Group"))
+sum(abs(merged$logFC - merged$meanR) < 0.00001)
+# [1] 83040
+
+source("DEG-to-long-form.R")
+previous <- mutate(longForm, Probe = Probe.ID, 
+   Concentration = paste(0, Concentration)) %>% 
+   merge(groupKey) %>% 
+   select(Log2_fold_change, Group, Probe)
+supermerged <- merge(merged, previous)
+sum(abs(supermerged$logFC - supermerged$Log2_fold_change) < 0.00001)
+# [1] 2
 
 data %>% 
-   group_by(Group) %>% 
+   group_by(Group, Day, Concentration) %>% 
    filter(abs(meanR) >= 0.5) %>% 
    summarize(sigPVal = sum(pVal < 0.05), sigBH = sum(BH < 0.05), 
       sigBon = sum(Bonferroni < 0.05))
+# Group Day Concentration sigPVal sigBH sigBon
+# 1   1          0 50     262     0      0
+# 2   1         0 500      11     0      0
+# 3   4          0 50     195     5      2
+# 4   4         0 500     234   106      2
+# 5   7          0 50     815   348      3
+# 6   7         0 500     182    27      1
+# 7  14          0 50      68    34      3
+# 8  14         0 500      71    71     17
