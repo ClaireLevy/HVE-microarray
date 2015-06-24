@@ -105,7 +105,7 @@ expressedLogical<-rowSums(detection(allDays.N.Q[,1:3]) <0.05)==3|
   rowSums(detection(allDays.N.Q[,25:27]) <0.05) ==3|
   rowSums(detection(allDays.N.Q[,28:30]) <0.05) ==3|
   rowSums(detection(allDays.N.Q[,31:33]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,34:36]) <0.05) ==3)
+  rowSums(detection(allDays.N.Q[,34:36]) <0.05) ==3
   
 
 
