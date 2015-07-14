@@ -1,4 +1,5 @@
 ####################### EXTRACT DATA FOR CYBER T INPUT ###############
+setwd("J:\\MacLabUsers\\Claire\\Projects\\HVE-microarray\\")
 library(dplyr)
 # need to submit data to cyber T webform like so:
 # Label, Cond1Repl1, Cond1Repl2, Cond2Repl1, Cond2Repl2
@@ -92,7 +93,9 @@ groupKey <- SampleKey %>%
       Concentration = paste(Concentration[1], Concentration[4])) 
 data <- merge(data, groupKey)
 
-# logFC from limma analysis gives the same numbers as the meanR from cyber-T
+# Question: is the logFC calculated by Cyber-T by us the same as the logFC 
+# calculated by limma? To answer, get limma data and then compare with 
+# Cyber-T data.
 limmaAnalysis <- lapply(TT, FUN = function(x) {
    x$Probe <- rownames(x) 
    x
@@ -105,7 +108,9 @@ cyberAnalysis <- mutate(data, Probe = Lab_0) %>% select(meanR, Group, Probe)
 merged <- merge(limmaAnalysis, cyberAnalysis, by = c("Probe", "Group"))
 sum(abs(merged$logFC - merged$meanR) < 0.00001)
 # [1] 83040
+# i.e. yes, for every probe, limma and cyber-t calculate the same log FC
 
+# What about the log fold change from the analysis from the eLife paper?
 source("DEG-to-long-form.R")
 previous <- mutate(longForm, Probe = Probe.ID, 
    Concentration = paste(0, Concentration)) %>% 
@@ -114,18 +119,55 @@ previous <- mutate(longForm, Probe = Probe.ID,
 supermerged <- merge(merged, previous)
 sum(abs(supermerged$logFC - supermerged$Log2_fold_change) < 0.00001)
 # [1] 2
+# The log fold changes are different between what we've done and the analysis
+# for the eLife paper, suggesting that we're somehow transforming (or not 
+# transforming) the data in a way that's different or that the data file we're
+# working from is somehow different. 
 
+# List of things that might explain this: 
+# - Different raw data / format
+# - Something incorrect in experiment design
+# - Missing or extra data transformation
+
+# Summary of Cyber-T results
+# no logFC filter
+data %>% 
+   group_by(Group, Day, Concentration) %>% 
+   summarize(sigPVal = sum(pVal < 0.05), sigBH = sum(BH < 0.05), 
+      sigBon = sum(Bonferroni < 0.05))
+#   Group Day Concentration sigPVal sigBH sigBon
+# 1     1   1          0 50     558     0      0
+# 2     2   1         0 500     166     0      0
+# 3     3   4          0 50    1248     5      2
+# 4     4   4         0 500    2218   140      2
+# 5     5   7          0 50    2892   378      3
+# 6     6   7         0 500    1471    28      1
+# 7     7  14          0 50    1743    59      3
+# 8     8  14         0 500    2243   514     17
+
+# with logFC filter
 data %>% 
    group_by(Group, Day, Concentration) %>% 
    filter(abs(meanR) >= 0.5) %>% 
    summarize(sigPVal = sum(pVal < 0.05), sigBH = sum(BH < 0.05), 
       sigBon = sum(Bonferroni < 0.05))
 # Group Day Concentration sigPVal sigBH sigBon
-# 1   1          0 50     262     0      0
-# 2   1         0 500      11     0      0
-# 3   4          0 50     195     5      2
-# 4   4         0 500     234   106      2
-# 5   7          0 50     815   348      3
-# 6   7         0 500     182    27      1
-# 7  14          0 50      68    34      3
-# 8  14         0 500      71    71     17
+#     1   1          0 50     262     0      0
+#     2   1         0 500      11     0      0
+#     3   4          0 50     195     5      2
+#     4   4         0 500     234   106      2
+#     5   7          0 50     815   348      3
+#     6   7         0 500     182    27      1
+#     7  14          0 50      68    34      3
+#     8  14         0 500      71    71     17
+
+# limma 
+# group  sig
+# 1      0  
+# 2      0  
+# 3      0  
+# 4      0  
+# 5      0  
+# 6      0 
+# 7      15 
+# 8      71
