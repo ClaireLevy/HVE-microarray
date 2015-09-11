@@ -41,7 +41,6 @@ RAW.lumi
 ##LMF:perform vst transformation and rsn normalization
 #lumiT returns a LumiBatch object with transformed exprs values
 #does log2, vst and cubicRoot transformations
-
 RAWlumi.T = lumiT(RAW.lumi)
 
 #between chip normalization, makes bgrnd same for all?
@@ -55,22 +54,6 @@ summary(RAWlumi.N.Q,"QC")#mean expression is much more uniform
 
 #I only want probes where the detection is <0.05 for all 3 donors of dose=0,
 #OR all of dose=50 OR all of dose=500
-
-#select all the data such that the columns arranged by dose and then day
-allDays.N.Q<-RAWlumi.N.Q[,c("HVE_A1","HVE_A5","HVE_A9",
-                     "HVE_B1","HVE_B5","HVE_B9",
-                     "HVE_C1","HVE_C5","HVE_C9",
-                     "HVE_A2","HVE_A6","HVE_A10",
-                     "HVE_B2","HVE_B6","HVE_B10",
-                     "HVE_C2","HVE_C6","HVE_C10",
-                     "HVE_A3","HVE_A7","HVE_A11",
-                     "HVE_B3","HVE_B7","HVE_B11",
-                     "HVE_C3","HVE_C7","HVE_C11",
-                     "HVE_A4","HVE_A8","HVE_A12",
-                     "HVE_B4","HVE_B8","HVE_B12",
-                     "HVE_C4","HVE_C8","HVE_C12")]
-
-
 
 # from the detection data of the lumiBatch created above,
 #select the probes (rows) where detection is <0.05 for ALL of 
@@ -93,22 +76,22 @@ allDays.N.Q<-RAWlumi.N.Q[,c("HVE_A1","HVE_A5","HVE_A9",
 # FALSE for each of them telling me if at least 1/9 conditions fits the
 #rule that rowSums==3.
 
+allDays.N.Q <- RAWlumi.N.Q
 
-expressedLogical<-rowSums(detection(allDays.N.Q[,1:3]) <0.05)==3|
-  rowSums(detection(allDays.N.Q[,4:6]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,7:9]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,10:12]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,13:15]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,16:18]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,19:21]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,22:24]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,25:27]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,28:30]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,31:33]) <0.05) ==3|
-  rowSums(detection(allDays.N.Q[,34:36]) <0.05) ==3
+# indices are for HVE_A*, HVE_B*, and HVE_C*, where * is the same number
+expressedLogical<-rowSums(detection(allDays.N.Q[,c(2, 18, 14)]) <0.05)==3|
+  rowSums(detection(allDays.N.Q[,c(19, 4, 27)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(24, 28, 5)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(31, 22, 32)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(7, 13, 1)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(16, 17, 21)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(35, 9, 29)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(25, 10, 26)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(8, 6, 15)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(33, 11, 12)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(36, 20, 3)]) <0.05) ==3|
+  rowSums(detection(allDays.N.Q[,c(30, 34, 23)]) <0.05) ==3
   
-
-
 #Now I need to subset the lumibatch to just contain those TRUE probes.
 #To do that, I pass this logical vector to the lumiBatch 
 # which subsets the lumiBatch to contain only the probes that are TRUE.
@@ -116,13 +99,11 @@ expressed<-allDays.N.Q[expressedLogical,]
 
 dims(RAWlumi.N.Q)
 dims(expressed)
-#19386 probes left
+#20117 probes left
 dims(RAWlumi.N.Q)-dims(expressed)
-#removed 27937 probes
-
+#removed 27206 probes
 
 ############################ FILTER SD  ##################
-
 
 library(limma)
 library(genefilter)
@@ -143,9 +124,9 @@ hist(dataMatrixSDfilter, breaks=50)
 #compare the filtered and unfiltered lumiBatch
 
 dim(dataMatrix)[1]-dim(dataMatrixSDfilter)[1]
-#got rid of 9006 probes
+#got rid of 9696 probes
 dim(dataMatrixSDfilter)[1]
-#10380 left
+#10421 left
 
 
 ################ FIT MODEL TO ALL DATA GROUPS ################################
@@ -174,7 +155,7 @@ load("SampleKey.Rda")
 #Function to select a particular group from the limma data set
 SelectDataGroup<-function(Group){
   x<-SampleKey[SampleKey$Group == Group,]
-  dataMatrixSDfilter[,x$SampleName]
+  dataMatrixSDfilter[,as.character(x$SampleName)]
 }
 
 # I want a list consisting of data frames for each group
@@ -201,7 +182,7 @@ fit<-lapply(fit, FUN=eBayes)
 #give all entries (so, as many rows as are in fit)
 
 TT<-lapply(fit,FUN=topTable,coef="Treatmentdrug",
-           adjust="BH", number = 10380)
+           adjust="BH", number = Inf)
 
 ######################## FILTER FOR LOG FC AND PVAL ###############
 
