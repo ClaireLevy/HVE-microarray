@@ -5,7 +5,7 @@
 require(dplyr)
 library(lumi)
 library(limma)
-library(dplyr)
+
 setwd("J:\\MacLabUsers\\Claire\\Projects\\HVE-microarray\\microarrayData")
 #LMF sent FinalReport_exvivoTNF_HVE_032615.txt which is raw
 #data with control PROBE profile data rather than control
@@ -32,9 +32,18 @@ RAW.lumi =lumiR(RAW,
                 verbose = TRUE) 
 
 
-RAW.lumi
 
+#all the feature data incl all the various probe ids and symbols
+fData<-fData(RAW.lumi)
+#just probeID and symbols, remove the rownames, which are the same
+#as the ProbeID (different from PROBE_ID)
+#use this later for annotation
 
+ProbeIDandSymbol<-fData%>%
+  dplyr::select(ProbeID, SYMBOL)
+colnames(ProbeIDandSymbol)<-c("Probe.ID","Symbol")
+
+rownames(ProbeIDandSymbol)<-NULL
 
 #################### NORMALISATION AND QC ###########################
 
@@ -55,7 +64,7 @@ summary(RAWlumi.N.Q,"QC")#mean expression is much more uniform
 #I only want probes where the detection is <0.05 for all 3 donors of dose=0,
 #OR all of dose=50 OR all of dose=500
 
-# from the detection data of the lumiBatch created above,
+#from the detection data of the lumiBatch created above,
 #select the probes (rows) where detection is <0.05 for ALL of 
 #the donors (==3) for dose=0  OR dose = 50 OR dose = 500 on
 #any of the days.
@@ -67,7 +76,7 @@ summary(RAWlumi.N.Q,"QC")#mean expression is much more uniform
 #in a group of ALL the donors for a single condition
 #(dose + day,ex HVE_A1, A5,A9) are <0.05.
 # If they are, rowSums==3 b/c "1"(yes) for all 3 of the columns.
-# and that probe is TRUE. If not, FALSE.
+# and that probe is called TRUE. If not, FALSE.
 #I want to keep probes where the rowSums==3 is TRUE
 #for AT LEAST one of the  3 doses x 3 donors across the
 #4 days so I use | to say it can be true for this condition OR this condition...
@@ -129,6 +138,11 @@ dim(dataMatrixSDfilter)[1]
 #10421 left
 
 
+library(lumiHumanAll.db)
+library(annotate)
+
+probeList<-rownames(dataMatrixSDfilter)
+geneSymbol<-getSYMBOL(probeList,"lumiHumanAll.db")
 ################ FIT MODEL TO ALL DATA GROUPS ################################
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
@@ -142,8 +156,10 @@ load("dataMatrixSDfilter.Rda")# data filtered by SD and detection
 
 #sample key has sample information incl a "Group" column
 #which assigns a number to a day + treatment + paired control (8)
-##GroupDataframes.Rda is a list of dataframes. There is one data frame
-# for each sample group. A group is: day + treatment + paired control
+
+# Below is code to make a list of data frames; one for each
+#sample group.
+# A group is: day + treatment + paired control. Incl all 3 donors.
 #Group 1 is day 1, dose = 50 and dose =0
 #Group 2 is day 1 dose = 500 and dose = 0
 # etc up to group 8 (day 14, dose =500 and dose = 0)
@@ -171,18 +187,24 @@ source("DesignMatrixAndTargets.R")
 
 
 ########################### FIT LIMMA ################################
-
+library(annotate)
+library(lumiHumanAll.db)
 #fit the model using the design matrix and the data frames for each
+
 #group
 fit<-lapply(GroupDataframes,FUN=lmFit,design = design)
 
 fit<-lapply(fit, FUN=eBayes)
-
+fit$genes$Symbol<-getSYMBOL(fit$genes$ID,"illuminaHumanAll.db")
 #generate a top table from the treatment data with BH adj pvalues
-#give all entries (so, as many rows as are in fit)
+#give all entries (so, as many rows as are in fit, number= inf)
+#The default topTable only gives the "top" results, but I want 
+#all of them.
 
 TT<-lapply(fit,FUN=topTable,coef="Treatmentdrug",
            adjust="BH", number = Inf)
+
+
 
 ######################## FILTER FOR LOG FC AND PVAL ###############
 
@@ -194,6 +216,12 @@ PValLogFCfiltered<-lapply(LogFCfiltered,subset,adj.P.Val <=0.05)
 
 
 #change the rowsnames(probes) to an actual column
+#I think there is a smarter way to do this but this works
+#maybe
+#lapply(PVallogFCfiltered, rownames,
+# PVaLogFCfiltered$Probe.ID)
+
+
 
 PValLogFCfiltered<-lapply(GroupList, function(df){
   c<-PValLogFCfiltered[[df]]
@@ -203,19 +231,72 @@ PValLogFCfiltered<-lapply(GroupList, function(df){
   
 })
 
+
+
 lapply(PValLogFCfiltered,FUN=nrow)
+
+
+
+
+######################GET HGNC SYMBOLS #################################
+
+library(ggplot2)
+load("PValLogFCfiltered14Sept15.Rda")
+
+#merge in the symbols names using ProbeIDandSymbol
+#df that I made when I read in the data above
+
+
+PValLogFCfiltered<-lapply(PValLogFCfiltered,merge,
+                          ProbeIDandSymbol, by="Probe.ID")
+
+############ COMPARING PROBES UP AND DOWN PER CONCENTRATION#################
+
+#add a column to each df in the list that says which day
+#and concentration the data is about
+
+dayList<-list(1,1,4,4,7,7,14,14)
+
+PValLogFCfiltered<-Map(cbind,PValLogFCfiltered,Day=dayList)
+
+concList<-list(50,500,50,500,50,500,50,500)
+
+PValLogFCfiltered<-Map(cbind,PValLogFCfiltered,Concentration=concList)
+
+
+#unlist the list so there is one big df in longform with the data
+#for plotting
+#I don't know why this works
+processedData<-do.call(rbind, lapply(PValLogFCfiltered,data.frame))
+
+#add a column for the direction of expression (up or down)
+
+processedData<-mutate(processedData,Direction=ifelse(processedData$logFC<0,
+                                            "Down","Up"))
+processedData$Concentration<-as.factor(processedData$Concentration)
+
+processedData$Day<-as.factor(processedData$Day)
+
+ggplot(processedData,aes(x = Day))+
+  geom_bar(aes(fill = Direction),position="dodge")+
+  scale_fill_manual(values = c("Up"="coral", "Down"= "cornflowerblue"))+
+  facet_wrap(~Concentration)
+
+
+
 ###################COMPARING WITH CYBER T RESULTS ###########################################
 
 #Lamar's cyber T results 
 load("LMF CyberT Analysis.Rda")
 
-#Where do limma nonfasle probes overlap with CyberT nonfalse probes?
+#Where do limma nonfalse probes overlap with CyberT nonfalse probes?
 
 
 
 ######################## EXTRACT AND SUBSET CYBERT NON FALSE #################
 #function for subsetting nonFalse CyberT data
 library(stringr)
+library(biomaRt)
 selectCyberT<-function(day.dose){
   x<-CyberT[,str_detect(colnames(CyberT),day.dose)]#extract using day and dose
   
@@ -237,6 +318,26 @@ CyberTDfs<-lapply(dayDoseList, FUN=selectCyberT)
 lapply(CyberTDfs,FUN=nrow)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ############################ FIND OVERLAPS ##########################
 findOverlaps<-function(df){
   C<-CyberTDfs[[df]]
@@ -251,7 +352,7 @@ findOverlaps<-function(df){
 overlaps<-lapply(GroupList,FUN = findOverlaps)
 
 #extract the first element of the 8th element
-#overlaps[[8]][[1]]
+overlaps[[8]][[1]]
 
 
 
@@ -301,4 +402,4 @@ diff$Probe<-as.character(diff$Probe)
 
 
 ggplot(diff,aes(Probe,rankDiff))+
-  geom_point(aes(), size=4)
+  geom_point(aes(), size=4, alpha=0.2)
