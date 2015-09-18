@@ -62,27 +62,20 @@ summary(RAWlumi.N.Q,"QC")#mean expression is much more uniform
 ########################## FILTER DETECTION ###############################
 
 #I only want probes where the detection is <0.05 for all 3 donors of dose=0,
-#OR all of dose=50 OR all of dose=500
+#OR all of dose=50 OR all of dose=500 
 
-#from the detection data of the lumiBatch created above,
-#select the probes (rows) where detection is <0.05 for ALL of 
-#the donors (==3) for dose=0  OR dose = 50 OR dose = 500 on
-#any of the days.
-#day1 is cols 1:9, day4 is 10:18, etc, 3 donors per dose per day.
+#from the detection data of the lumiBatch created above:
 
-#in other words....
+#For each row (probe) determine whether the detection p values are < 0.05
+# for ALL the donors for at least one of the 12 combinations of day+dose
 
-#For each row (probe) determine whether the detection p values
-#in a group of ALL the donors for a single condition
-#(dose + day,ex HVE_A1, A5,A9) are <0.05.
-# If they are, rowSums==3 b/c "1"(yes) for all 3 of the columns.
-# and that probe is called TRUE. If not, FALSE.
-#I want to keep probes where the rowSums==3 is TRUE
-#for AT LEAST one of the  3 doses x 3 donors across the
-#4 days so I use | to say it can be true for this condition OR this condition...
+# The resulting logical vector is ALL the probes and the value TRUE or
+# FALSE for each of them indicating whether or not  that probe met the condition above
+
+
 
 # The resulting logical vector is all the probes and the value TRUE or
-# FALSE for each of them telling me if at least 1/9 conditions fits the
+# FALSE for each of them telling me if at least 1/12 conditions fits the
 #rule that rowSums==3.
 
 allDays.N.Q <- RAWlumi.N.Q
