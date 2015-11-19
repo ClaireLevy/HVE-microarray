@@ -39,11 +39,11 @@ fData<-fData(RAW.lumi)
 #as the ProbeID (different from PROBE_ID)
 #use this later for annotation
 
-ProbeIDandSymbol<-fData%>%
-  dplyr::select(ProbeID, SYMBOL)
-colnames(ProbeIDandSymbol)<-c("Probe.ID","Symbol")
+ProbeIDTargetIDEntrez<-fData%>%
+  dplyr::select(ProbeID, TargetID,ENTREZ_GENE_ID)
+colnames(ProbeIDTargetIDEntrez)<-c("Probe.ID","TargetID","ENTREZ_GENE_ID")
 
-rownames(ProbeIDandSymbol)<-NULL
+rownames(ProbeIDTargetIDEntrez)<-NULL
 
 #################### NORMALISATION AND QC ###########################
 
@@ -115,13 +115,8 @@ dataMatrix <- exprs(expressed)
 #calculate the row standard deviations
 rowSdsMatrix<-rowSds(dataMatrix)
 
-hist(rowSdsMatrix,breaks=50)
-
 #subset dataMatrix to get just the probes where the rowSD is >0.2
 dataMatrixSDfilter<-dataMatrix[rowSdsMatrix>=0.2,]
-
-
-hist(dataMatrixSDfilter, breaks=50)
 
 #compare the filtered and unfiltered lumiBatch
 
@@ -130,12 +125,6 @@ dim(dataMatrix)[1]-dim(dataMatrixSDfilter)[1]
 dim(dataMatrixSDfilter)[1]
 #10421 left
 
-
-library(lumiHumanAll.db)
-library(annotate)
-
-probeList<-rownames(dataMatrixSDfilter)
-geneSymbol<-getSYMBOL(probeList,"lumiHumanAll.db")
 ################ FIT MODEL TO ALL DATA GROUPS ################################
 
 setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
@@ -180,15 +169,14 @@ source("DesignMatrixAndTargets.R")
 
 
 ########################### FIT LIMMA ################################
-library(annotate)
-library(lumiHumanAll.db)
+
 #fit the model using the design matrix and the data frames for each
 
 #group
 fit<-lapply(GroupDataframes,FUN=lmFit,design = design)
 
 fit<-lapply(fit, FUN=eBayes)
-fit$genes$Symbol<-getSYMBOL(fit$genes$ID,"illuminaHumanAll.db")
+
 #generate a top table from the treatment data with BH adj pvalues
 #give all entries (so, as many rows as are in fit, number= inf)
 #The default topTable only gives the "top" results, but I want 
@@ -233,15 +221,19 @@ lapply(PValLogFCfiltered,FUN=nrow)
 
 ######################GET HGNC SYMBOLS #################################
 
-library(ggplot2)
+
+setwd("J:/MacLabUsers/Claire/Projects/HVE-microarray/microarrayData")
+
 load("PValLogFCfiltered14Sept15.Rda")
 
-#merge in the symbols names using ProbeIDandSymbol
-#df that I made when I read in the data above
 
+
+#merge in the symbols names using ProbeIDTargetIDEntrez
+#df that I made when I read in the raw data above
+load("ProbeIDTargetIDEntrez.Rda")
 
 PValLogFCfiltered<-lapply(PValLogFCfiltered,merge,
-                          ProbeIDandSymbol, by="Probe.ID")
+                          ProbeIDTargetIDEntrez, by="Probe.ID")
 
 ############ COMPARING PROBES UP AND DOWN PER CONCENTRATION#################
 
@@ -265,18 +257,100 @@ processedData<-do.call(rbind, lapply(PValLogFCfiltered,data.frame))
 #add a column for the direction of expression (up or down)
 
 processedData<-mutate(processedData,Direction=ifelse(processedData$logFC<0,
-                                            "Down","Up"))
+                                            "DOWN","UP"))
 processedData$Concentration<-as.factor(processedData$Concentration)
 
 processedData$Day<-as.factor(processedData$Day)
 
-ggplot(processedData,aes(x = Day))+
+probeCountPlot<-ggplot(processedData,aes(x = Day))+
   geom_bar(aes(fill = Direction),position="dodge")+
-  scale_fill_manual(values = c("Up"="coral", "Down"= "cornflowerblue"))+
-  facet_wrap(~Concentration)
+  scale_fill_manual(values = c("UP"="coral", "DOWN"= "cornflowerblue"))+
+  facet_wrap(~Concentration)+
+  ggtitle("Count of up and down regulated probes")
 
+ggsave("probeCountPlot.png",dpi=600)
 
+ggplot(processedData,aes(ENTREZ_GENE_ID, Probe.ID ))+
+  geom_tile(aes(fill = AveExpr))+
+  scale_fill_gradient(low = "white",high = "steelblue")
 
+######################### COLLAPSE VALUES FOR MULTIPLE PROBES #######################
+
+#I am using a slightly modified version of SH's code in "collapse-probes.R" that
+#he wrote for use with the CyberT data from LMF. I don't have the 
+#"symmetrical raw fold change" column
+
+CLcollapseProbes <- function(dataframe) {
+  library(dplyr)
+  library(stringr)
+  
+  # Return the number farther from zero (e.g. c(1.7, -1.8) returns -1.8)
+  absMax <- function(data) {
+    max <- max(data)
+    min <- min(data)
+    if (max > abs(min)) {
+      return(max)
+    } else {
+      return(min)
+    }
+  }
+  
+  # Return FALSE if all FALSE, UP if all UP or mixture of UP and FALSE, DOWN
+  # if all DOWN or mixture of DOWN and FALSE, descriptive message if both UP
+  # and DOWN
+  getDir <- function(data) {
+    if (all(data == "FALSE")) {
+      return("FALSE") 
+    } else if (all(data %in% c("FALSE", "UP"))) {
+      return("UP")
+    } else if (all(data %in% c("FALSE", "DOWN"))) {
+      return("DOWN")
+    } else {
+      return(paste("Disagreeing probes:", sum(data == "UP"), "up,", 
+                   sum(data == "DOWN"), "down"))
+    }
+  }
+  
+  dataframe %>%
+    group_by(Day, Concentration, TargetID) %>%
+    summarize(
+      ENTREZ_GENE_ID = ENTREZ_GENE_ID[1],
+      logFC = absMax(logFC),
+      #Symmetrical_raw_fold_change = absMax(Symmetrical_raw_fold_change),
+      adj.P.Val = min(adj.P.Val),
+      Direction = getDir(Direction)
+    )
+}
+
+#This is a data frame that has one row per GENE (not probe) and the logFC 
+# and p val have been summarized as the value for which ever of the probes
+#for that gene has the biggest absolute value. If the probes disagree, it says
+#how many are up and down
+
+collapsedProbes<-CLcollapseProbes(processedData)
+
+#separate the data with no disagreements from the disagree-ing
+
+collapsedProbesAgree<-filter(collapsedProbes,
+                             Direction == "DOWN" | Direction == "UP")
+collapsedProbesNOTAgree<-filter(collapsedProbes,
+                                Direction != "DOWN" & Direction != "UP")
+
+#plot like it's hot
+geneCountAgreePlot<-ggplot(collapsedProbesAgree,aes(x = Day))+
+  scale_fill_manual(values = c("UP"="coral", "DOWN"= "cornflowerblue"))+
+  geom_bar(aes(fill = Direction),position="dodge")+
+  facet_wrap(~Concentration)+
+  ggtitle("Count of up and down regulated genes:only agreeing probes")
+
+ggsave("geneCountAgreePlot.png",dpi=600)
+
+geneCountNOTAgreePlot<-ggplot(collapsedProbesNOTAgree,aes(x = Day))+
+  geom_bar(aes(fill = Direction),position="dodge")+
+  facet_wrap(~Concentration)+
+  ggtitle("Count of disaggreeing probes")
+
+ggsave("geneCountNOTAgreePlot.png",dpi=600)
 ###################COMPARING WITH CYBER T RESULTS ###########################################
 
 #Lamar's cyber T results 
